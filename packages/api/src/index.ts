@@ -1,17 +1,40 @@
 import { serve } from '@hono/node-server';
-import { Hono } from 'hono';
+import app from './app';
+import { env } from './config/env';
+import { logger } from './utils/logger';
 
-const app = new Hono();
+const port = env.PORT;
+const host = env.HOST;
 
-app.get('/', (c) => {
-  return c.json({ message: 'DMS API Server' });
+logger.info({
+  env: env.NODE_ENV,
+  port,
+  host,
+  msg: 'Starting DMS API Server',
 });
 
-const port = Number(process.env.PORT) || 3000;
+serve(
+  {
+    fetch: app.fetch,
+    port,
+    hostname: host,
+  },
+  (info) => {
+    logger.info({
+      port: info.port,
+      address: `http://${host}:${info.port}`,
+      msg: 'Server is running',
+    });
+  },
+);
 
-console.log(`Server is running on port ${port}`);
+// Graceful shutdown
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
 
-serve({
-  fetch: app.fetch,
-  port,
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
 });
