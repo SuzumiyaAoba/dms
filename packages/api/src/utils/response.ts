@@ -39,7 +39,7 @@ export const successResponse = <T>(
     },
   };
 
-  return c.json(response, status);
+  return c.json(response, status as never);
 };
 
 export const errorResponse = (
@@ -62,7 +62,7 @@ export const errorResponse = (
     },
   };
 
-  return c.json(response, status);
+  return c.json(response, status as never);
 };
 
 export const paginatedResponse = <T>(
