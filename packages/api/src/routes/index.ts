@@ -8,6 +8,8 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { API_PREFIX } from '../config/constants';
+import documents from './documents';
 import health from './health';
 
 const routes = new OpenAPIHono();
@@ -24,10 +26,18 @@ const routes = new OpenAPIHono();
  */
 routes.route('/health', health);
 
-// API routes will be added here
-// TODO: Add versioned API routes under /api/v1 prefix
-// routes.route('/documents', documents);
-// routes.route('/search', search);
-// etc.
+/**
+ * Document management routes
+ *
+ * Mounted at /api/v1/documents for document CRUD operations.
+ *
+ * Available endpoints:
+ * - GET /api/v1/documents - List all documents (paginated)
+ * - GET /api/v1/documents/:id - Get a specific document
+ * - POST /api/v1/documents - Create a new document
+ * - PATCH /api/v1/documents/:id - Update a document
+ * - DELETE /api/v1/documents/:id - Delete a document
+ */
+routes.route(`${API_PREFIX}/documents`, documents);
 
 export default routes;
