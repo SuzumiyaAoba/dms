@@ -16,12 +16,13 @@
   "dependencies": {
     "@dms/core": "workspace:*",
     "@hono/node-server": "^1.19.6",
-    "@hono/zod-validator": "^0.3.0",
+    "@hono/zod-openapi": "^1.1.5",
+    "@scalar/hono-api-reference": "^0.9.25",
     "dotenv": "^16.0.0",
     "hono": "^4.10.7",
     "pino": "^9.0.0",
     "pino-pretty": "^11.0.0",
-    "zod": "^3.23.0"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

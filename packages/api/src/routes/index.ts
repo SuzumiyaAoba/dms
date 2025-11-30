@@ -7,10 +7,10 @@
  * @module routes/index
  */
 
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import health from './health';
 
-const routes = new Hono();
+const routes = new OpenAPIHono();
 
 /**
  * Health check routes
