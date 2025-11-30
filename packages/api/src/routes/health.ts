@@ -1,18 +1,83 @@
 /**
  * Health check routes module
  *
- * This module provides endpoints for monitoring the API's health and readiness status.
- * These endpoints are commonly used by load balancers, container orchestrators (e.g., Kubernetes),
- * and monitoring systems to determine if the service is running and ready to accept traffic.
+ * This module provides OpenAPI-documented endpoints for monitoring the API's health
+ * and readiness status. These endpoints are commonly used by load balancers,
+ * container orchestrators (e.g., Kubernetes), and monitoring systems to determine
+ * if the service is running and ready to accept traffic.
  *
  * @module routes/health
  */
 
-import { Hono } from 'hono';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { env } from '../config/env';
-import { successResponse } from '../utils/response';
 
-const health = new Hono();
+const health = new OpenAPIHono();
+
+/**
+ * Health status response schema
+ */
+const HealthStatusSchema = z.object({
+  status: z.string().openapi({ example: 'healthy' }),
+  version: z.string().openapi({ example: '1.0.0' }),
+  environment: z.enum(['development', 'production', 'test']).openapi({ example: 'development' }),
+  timestamp: z.string().datetime().openapi({ example: '2025-11-30T12:00:00.000Z' }),
+});
+
+/**
+ * Readiness status response schema
+ */
+const ReadinessStatusSchema = z.object({
+  status: z.string().openapi({ example: 'ready' }),
+  checks: z.object({
+    database: z.string().openapi({ example: 'pending' }),
+    storage: z.string().openapi({ example: 'pending' }),
+  }),
+});
+
+/**
+ * GET /health route definition
+ */
+const healthRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['Health'],
+  summary: 'Health check',
+  description:
+    'Basic health check endpoint that returns the API status and version. Always returns 200 OK if the API process is running.',
+  responses: {
+    200: {
+      description: 'API is healthy',
+      content: {
+        'application/json': {
+          schema: HealthStatusSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * GET /health/ready route definition
+ */
+const readyRoute = createRoute({
+  method: 'get',
+  path: '/ready',
+  tags: ['Health'],
+  summary: 'Readiness check',
+  description:
+    'Readiness check endpoint that indicates whether the API is ready to serve traffic. Should verify that all dependencies (database, storage, etc.) are accessible.',
+  responses: {
+    200: {
+      description: 'API is ready',
+      content: {
+        'application/json': {
+          schema: ReadinessStatusSchema,
+        },
+      },
+    },
+  },
+});
 
 /**
  * GET /health
@@ -21,38 +86,9 @@ const health = new Hono();
  * This endpoint always returns 200 OK if the API process is running.
  *
  * Use this endpoint for basic "is the service running?" checks.
- *
- * @returns {Object} Health status information
- * @property {string} status - Always "healthy" if the API is running
- * @property {string} version - Current API version
- * @property {string} environment - Current environment (development/production/test)
- * @property {string} timestamp - Current ISO 8601 timestamp
- *
- * @example
- * Request:
- * ```
- * GET /health
- * ```
- *
- * Response:
- * ```json
- * {
- *   "success": true,
- *   "data": {
- *     "status": "healthy",
- *     "version": "1.0.0",
- *     "environment": "development",
- *     "timestamp": "2025-11-30T12:00:00.000Z"
- *   },
- *   "meta": {
- *     "timestamp": "2025-11-30T12:00:00.000Z",
- *     "requestId": "550e8400-e29b-41d4-a716-446655440000"
- *   }
- * }
- * ```
  */
-health.get('/', (c) => {
-  return successResponse(c, {
+health.openapi(healthRoute, (c) => {
+  return c.json({
     status: 'healthy',
     version: '1.0.0',
     environment: env.NODE_ENV,
@@ -70,55 +106,10 @@ health.get('/', (c) => {
  * These checks should be implemented to verify actual connectivity.
  *
  * Use this endpoint for Kubernetes readiness probes or load balancer health checks.
- *
- * @returns {Object} Readiness status and dependency checks
- * @property {string} status - "ready" if all systems are operational
- * @property {Object} checks - Status of individual dependency checks
- * @property {string} checks.database - Database connection status (TODO: implement actual check)
- * @property {string} checks.storage - Storage system status (TODO: implement actual check)
- *
- * @example
- * Request:
- * ```
- * GET /health/ready
- * ```
- *
- * Response (current):
- * ```json
- * {
- *   "success": true,
- *   "data": {
- *     "status": "ready",
- *     "checks": {
- *       "database": "pending",
- *       "storage": "pending"
- *     }
- *   },
- *   "meta": {
- *     "timestamp": "2025-11-30T12:00:00.000Z",
- *     "requestId": "550e8400-e29b-41d4-a716-446655440000"
- *   }
- * }
- * ```
- *
- * @example
- * Future implementation with actual checks:
- * ```json
- * {
- *   "success": true,
- *   "data": {
- *     "status": "ready",
- *     "checks": {
- *       "database": "connected",
- *       "storage": "connected"
- *     }
- *   }
- * }
- * ```
  */
-health.get('/ready', (c) => {
+health.openapi(readyRoute, (c) => {
   // TODO: Add readiness checks (DB connection, etc.)
-  return successResponse(c, {
+  return c.json({
     status: 'ready',
     checks: {
       database: 'pending',

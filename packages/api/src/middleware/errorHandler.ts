@@ -95,7 +95,7 @@ export const errorHandler = async (c: Context, next: Next) => {
         ERROR_CODES.VALIDATION_ERROR,
         'Validation failed',
         HTTP_STATUS.BAD_REQUEST,
-        error.errors,
+        error.issues,
       );
     }
 

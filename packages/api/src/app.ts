@@ -1,14 +1,15 @@
 /**
  * Hono application setup module
  *
- * This module creates and configures the main Hono application instance,
- * including all global middleware and route registration. The app instance
- * is exported for use by the server entry point.
+ * This module creates and configures the main Hono application instance with OpenAPI support,
+ * including all global middleware, route registration, and API documentation.
+ * The app instance is exported for use by the server entry point.
  *
  * @module app
  */
 
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { apiReference } from '@scalar/hono-api-reference';
 import { logger as honoLogger } from 'hono/logger';
 import { API_PREFIX } from './config/constants';
 import { cors } from './middleware/cors';
@@ -18,7 +19,7 @@ import { notFound } from './middleware/notFound';
 import routes from './routes';
 
 /**
- * Main Hono application instance
+ * Main Hono application instance with OpenAPI support
  *
  * Configured with the following middleware stack (in order):
  * 1. **Hono built-in logger** - Console logging for development
@@ -28,6 +29,8 @@ import routes from './routes';
  *
  * Routes are mounted as follows:
  * - Health check routes at `/health` (no API prefix)
+ * - API documentation at `/reference` (Scalar UI)
+ * - OpenAPI spec at `/doc` (JSON format)
  * - API routes will be mounted at `/api/v1` (TODO)
  * - 404 handler for undefined routes
  *
@@ -49,7 +52,7 @@ import routes from './routes';
  * Response (or 404 if no match)
  * ```
  */
-const app = new Hono();
+const app = new OpenAPIHono();
 
 // Global middleware
 app.use('*', honoLogger());
@@ -62,6 +65,31 @@ app.route('/', routes);
 
 // API versioned routes (to be added)
 // app.route(API_PREFIX, apiRoutes);
+
+// OpenAPI documentation
+app.doc('/doc', {
+  openapi: '3.1.0',
+  info: {
+    version: '1.0.0',
+    title: 'DMS API',
+    description: 'Document Management System API with LLM-powered search capabilities',
+  },
+  servers: [
+    {
+      url: 'http://localhost:3000',
+      description: 'Development server',
+    },
+  ],
+});
+
+// Scalar API Reference UI
+app.get(
+  '/reference',
+  apiReference({
+    theme: 'purple',
+    url: '/doc',
+  }),
+);
 
 // 404 handler
 app.notFound(notFound);
