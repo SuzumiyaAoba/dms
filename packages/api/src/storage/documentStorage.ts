@@ -7,23 +7,13 @@
  * @module storage/documentStorage
  */
 
+import { uuidv7 } from 'uuidv7';
 import type { CreateDocument, Document, UpdateDocument } from '../types/document';
 
 /**
  * In-memory document store
  */
 const documents = new Map<string, Document>();
-
-/**
- * Generate a simple UUID v4
- */
-function generateId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 /**
  * Get all documents
@@ -61,7 +51,7 @@ export function getDocumentById(id: string): Document | undefined {
 export function createDocument(data: CreateDocument): Document {
   const now = new Date().toISOString();
   const document: Document = {
-    id: generateId(),
+    id: uuidv7(),
     title: data.title,
     content: data.content,
     createdAt: now,

@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Document schema for validation
  */
 export const DocumentSchema = z.object({
-  id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+  id: z.string().uuid().openapi({ example: '01933c3e-8f52-7000-a000-123456789abc' }),
   title: z.string().min(1).max(200).openapi({ example: 'Project Documentation' }),
   content: z.string().openapi({ example: 'This is the content of the document...' }),
   createdAt: z.string().datetime().openapi({ example: '2025-11-30T00:00:00.000Z' }),
