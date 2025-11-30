@@ -11,10 +11,17 @@
 import { serve } from '@hono/node-server';
 import app from './app';
 import { env } from './config/env';
+import { seedDocuments } from './storage/documentStorage';
 import { logger } from './utils/logger';
 
 const port = env.PORT;
 const host = env.HOST;
+
+// Seed sample documents in development mode
+if (env.NODE_ENV === 'development') {
+  seedDocuments();
+  logger.info('Seeded sample documents for development');
+}
 
 // Log server startup information
 logger.info({

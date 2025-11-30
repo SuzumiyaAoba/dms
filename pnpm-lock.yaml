@@ -47,6 +47,9 @@ importers:
       pino-pretty:
         specifier: ^11.0.0
         version: 11.3.0
+      uuidv7:
+        specifier: ^1.0.3
+        version: 1.0.3
       zod:
         specifier: ^4.1.11
         version: 4.1.11
@@ -2830,6 +2833,10 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  uuidv7@1.0.3:
+    resolution: {integrity: sha512-PqOx2jsYT5bkMFz3V2TR2bbjX2acRnA/3lQ2rN2MsnInZwGJXOwFBJlHnoVOdYwPhBUe1YXUDUCx9WS3c5UT8g==}
+    hasBin: true
 
   vite@7.2.4:
     resolution: {integrity: sha512-NL8jTlbo0Tn4dUEXEsUg8KeyG/Lkmc4Fnzb8JXN/Ykm9G4HNImjtABMJgkQoVjOBN/j2WAwDTRytdqJbZsah7w==}
@@ -5788,6 +5795,8 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  uuidv7@1.0.3: {}
 
   vite@7.2.4(@types/node@24.10.1)(tsx@4.20.6)(yaml@2.8.1):
     dependencies:
