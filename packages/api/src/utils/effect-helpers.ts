@@ -8,8 +8,8 @@
 
 import { Effect } from 'effect';
 import type { Context } from 'hono';
-import type { AppError } from './effect-errors';
-import { logger } from './logger';
+import type { AppError } from '@/utils/effect-errors';
+import { logger } from '@/utils/logger';
 
 /**
  * Run an Effect program and handle errors appropriately

@@ -9,7 +9,7 @@
  */
 
 import pino from 'pino';
-import { env, isDevelopment } from '../config/env';
+import { env, isDevelopment } from '@/config/env';
 
 /**
  * Configured Pino logger instance

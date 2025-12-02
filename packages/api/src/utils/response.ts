@@ -9,7 +9,7 @@
  */
 
 import type { Context } from 'hono';
-import { HTTP_STATUS } from '../config/constants';
+import { HTTP_STATUS } from '@/config/constants';
 
 /**
  * Standard API response structure

@@ -10,10 +10,10 @@
 
 import 'reflect-metadata';
 import { serve } from '@hono/node-server';
-import app from './app';
-import { setupContainer } from './config/container';
-import { env } from './config/env';
-import { logger } from './utils/logger';
+import app from '@/app';
+import { setupContainer } from '@/config/container';
+import { env } from '@/config/env';
+import { logger } from '@/utils/logger';
 
 const port = env.PORT;
 const host = env.HOST;

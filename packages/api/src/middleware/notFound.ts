@@ -9,8 +9,8 @@
  */
 
 import type { Context } from 'hono';
-import { ERROR_CODES, HTTP_STATUS } from '../config/constants';
-import { errorResponse } from '../utils/response';
+import { ERROR_CODES, HTTP_STATUS } from '@/config/constants';
+import { errorResponse } from '@/utils/response';
 
 /**
  * 404 Not Found handler

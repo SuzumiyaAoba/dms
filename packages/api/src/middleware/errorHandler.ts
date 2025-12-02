@@ -10,10 +10,10 @@
 
 import type { Context, Next } from 'hono';
 import { ZodError } from 'zod';
-import { ERROR_CODES, HTTP_STATUS } from '../config/constants';
-import { AppError } from '../utils/errors';
-import { logger } from '../utils/logger';
-import { errorResponse } from '../utils/response';
+import { ERROR_CODES, HTTP_STATUS } from '@/config/constants';
+import { AppError } from '@/utils/errors';
+import { logger } from '@/utils/logger';
+import { errorResponse } from '@/utils/response';
 
 /**
  * Global error handling middleware

@@ -10,12 +10,12 @@
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { container } from 'tsyringe';
-import { HTTP_STATUS } from '../config/constants';
-import { DocumentService } from '../services/DocumentService';
-import { DocumentSchema, UpdateDocumentSchema } from '../types/document';
-import { runEffectHandler } from '../utils/effect-helpers';
-import { paginatedResponse, successResponse } from '../utils/response';
-import { idSchema, paginationSchema } from '../utils/validation';
+import { HTTP_STATUS } from '@/config/constants';
+import { DocumentService } from '@/services/DocumentService';
+import { DocumentSchema, UpdateDocumentSchema } from '@/types/document';
+import { runEffectHandler } from '@/utils/effect-helpers';
+import { paginatedResponse, successResponse } from '@/utils/response';
+import { idSchema, paginationSchema } from '@/utils/validation';
 
 const documents = new OpenAPIHono();
 

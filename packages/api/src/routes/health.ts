@@ -10,7 +10,7 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { env } from '../config/env';
+import { env } from '@/config/env';
 
 const health = new OpenAPIHono();
 

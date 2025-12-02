@@ -8,7 +8,7 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { API_PREFIX } from '../config/constants';
+import { API_PREFIX } from '@/config/constants';
 import documents from './documents';
 import health from './health';
 

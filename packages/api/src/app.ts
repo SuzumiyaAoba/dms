@@ -11,11 +11,11 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { logger as honoLogger } from 'hono/logger';
-import { cors } from './middleware/cors';
-import { errorHandler } from './middleware/errorHandler';
-import { loggerMiddleware } from './middleware/logger';
-import { notFound } from './middleware/notFound';
-import routes from './routes';
+import { cors } from '@/middleware/cors';
+import { errorHandler } from '@/middleware/errorHandler';
+import { loggerMiddleware } from '@/middleware/logger';
+import { notFound } from '@/middleware/notFound';
+import routes from '@/routes';
 
 /**
  * Main Hono application instance with OpenAPI support
