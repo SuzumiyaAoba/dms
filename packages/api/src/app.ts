@@ -11,7 +11,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { logger as honoLogger } from 'hono/logger';
-import { API_PREFIX } from './config/constants';
 import { cors } from './middleware/cors';
 import { errorHandler } from './middleware/errorHandler';
 import { loggerMiddleware } from './middleware/logger';

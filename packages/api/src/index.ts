@@ -8,22 +8,23 @@
  * @module index
  */
 
+import 'reflect-metadata';
 import { serve } from '@hono/node-server';
 import app from './app';
+import { setupContainer } from './config/container';
 import { env } from './config/env';
-import { StorageService } from './config/storage';
 import { logger } from './utils/logger';
 
 const port = env.PORT;
 const host = env.HOST;
 
-// Initialize storage service
+// Initialize DI container
 async function initializeServer() {
   try {
-    await StorageService.initialize();
-    logger.info('Storage service initialized successfully');
+    await setupContainer();
+    logger.info('DI container initialized successfully');
   } catch (error) {
-    logger.error({ error }, 'Failed to initialize storage service');
+    logger.error({ error }, 'Failed to initialize DI container');
     process.exit(1);
   }
 }
@@ -36,7 +37,7 @@ logger.info({
   msg: 'Starting DMS API Server',
 });
 
-// Initialize storage before starting server
+// Initialize DI container before starting server
 await initializeServer();
 
 /**

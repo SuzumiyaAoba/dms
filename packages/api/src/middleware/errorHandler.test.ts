@@ -1,4 +1,4 @@
-import type { Context, Next } from 'hono';
+import type { Context } from 'hono';
 import { describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 import { ERROR_CODES, HTTP_STATUS } from '../config/constants';
