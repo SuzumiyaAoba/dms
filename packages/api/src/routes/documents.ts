@@ -9,9 +9,10 @@
 
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { container } from 'tsyringe';
 import { HTTP_STATUS } from '../config/constants';
-import { StorageService } from '../config/storage';
-import { CreateDocumentSchema, DocumentSchema, UpdateDocumentSchema } from '../types/document';
+import { DocumentService } from '../services/DocumentService';
+import { DocumentSchema, UpdateDocumentSchema } from '../types/document';
 import { NotFoundError } from '../utils/errors';
 import { paginatedResponse, successResponse } from '../utils/response';
 import { idSchema, paginationSchema } from '../utils/validation';
@@ -60,8 +61,8 @@ const listDocumentsRoute = createRoute({
 
 documents.openapi(listDocumentsRoute, async (c) => {
   const { page, limit } = c.req.valid('query');
-  const storage = StorageService.getInstance();
-  const { items, total } = await storage.documentRepository.findAll(page, limit);
+  const documentService = container.resolve(DocumentService);
+  const { items, total } = await documentService.listDocuments(page, limit);
 
   return paginatedResponse(c, items, page, limit, total);
 });
@@ -117,8 +118,8 @@ const getDocumentRoute = createRoute({
 
 documents.openapi(getDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
-  const storage = StorageService.getInstance();
-  const document = await storage.documentRepository.findById(id);
+  const documentService = container.resolve(DocumentService);
+  const document = await documentService.getDocumentById(id);
 
   if (!document) {
     throw new NotFoundError('Document', id);
@@ -205,35 +206,22 @@ documents.openapi(createDocumentRoute, async (c) => {
   }
 
   // Parse form data
-  const title = (body.title as string) || file.name;
+  const title = (body.title as string) || undefined;
   const description = body.description as string | undefined;
   const tagsString = body.tags as string | undefined;
   const metadataString = body.metadata as string | undefined;
 
-  const tags = tagsString ? tagsString.split(',').map((t) => t.trim()) : [];
-  const metadata = metadataString ? JSON.parse(metadataString) : {};
+  const tags = tagsString ? tagsString.split(',').map((t) => t.trim()) : undefined;
+  const metadata = metadataString ? JSON.parse(metadataString) : undefined;
 
-  // Upload file to storage
-  const storage = StorageService.getInstance();
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const uploadResult = await storage.storageAdapter.upload({
-    fileName: file.name,
-    mimeType: file.type,
-    buffer,
-    metadata,
-  });
-
-  // Create document metadata
-  const document = await storage.documentRepository.create({
+  // Upload document via service
+  const documentService = container.resolve(DocumentService);
+  const document = await documentService.uploadDocument({
+    file,
     title,
     description,
     tags,
     metadata,
-    fileUrl: uploadResult.url,
-    fileName: file.name,
-    fileSize: uploadResult.size,
-    mimeType: file.type,
   });
 
   return successResponse(c, document, HTTP_STATUS.CREATED);
@@ -299,8 +287,8 @@ documents.openapi(updateDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
   const data = c.req.valid('json');
 
-  const storage = StorageService.getInstance();
-  const updated = await storage.documentRepository.update(id, data);
+  const documentService = container.resolve(DocumentService);
+  const updated = await documentService.updateDocument(id, data);
 
   if (!updated) {
     throw new NotFoundError('Document', id);
@@ -364,8 +352,8 @@ const deleteDocumentRoute = createRoute({
 documents.openapi(deleteDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
 
-  const storage = StorageService.getInstance();
-  const deleted = await storage.documentRepository.delete(id);
+  const documentService = container.resolve(DocumentService);
+  const deleted = await documentService.deleteDocument(id);
 
   if (!deleted) {
     throw new NotFoundError('Document', id);

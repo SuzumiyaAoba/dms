@@ -126,16 +126,35 @@ The project is under active development. Current state:
 
 ## Key Design Patterns
 
-### 1. Repository Pattern
+### 1. Dependency Injection (tsyringe)
+The project uses tsyringe for dependency injection with the following benefits:
+- **Automatic dependency resolution**: Services and repositories are automatically injected
+- **Type-safe**: Full TypeScript support with decorators
+- **Testability**: Easy to mock dependencies in tests
+- **Configuration**: All DI setup in `packages/api/src/config/container.ts`
+
+Key concepts:
+- Use `@injectable()` decorator on services
+- Use `@inject(TOKEN)` for constructor injection
+- Resolve dependencies with `container.resolve(Service)`
+- Register dependencies in `setupContainer()` function
+
+### 2. Repository Pattern
 Domain layer defines repository interfaces, infrastructure layer implements them. This enables:
 - Database-agnostic domain logic
 - Easy mocking for tests
 - Swappable storage backends
 
-### 2. Dependency Inversion
+### 3. Service Layer
+Business logic is encapsulated in service classes:
+- `DocumentService`: Coordinates document operations between storage and repository
+- Services are registered in DI container
+- Routes resolve services via `container.resolve()`
+
+### 4. Dependency Inversion
 Higher-level modules (domain) define interfaces, lower-level modules (infrastructure) implement them.
 
-### 3. OpenAPI-First API Design
+### 5. OpenAPI-First API Design
 - All endpoints documented with `@hono/zod-openapi`
 - Schema validation with Zod
 - Auto-generated API documentation at `/doc`
@@ -236,6 +255,7 @@ pnpm --filter @dms/api test -- documents
 ### Backend
 - **Runtime**: Node.js 20+
 - **Framework**: Hono (lightweight, fast)
+- **DI Container**: tsyringe with reflect-metadata
 - **Validation**: Zod
 - **Logger**: Pino
 - **Testing**: Vitest
@@ -255,14 +275,16 @@ pnpm --filter @dms/api test -- documents
 - **Core Domain**: `packages/core/src/domain/`
   - `adapters/IStorageAdapter.ts`: Storage adapter interface
 - **API Routes**: `packages/api/src/routes/`
-  - `documents.ts`: Document upload/CRUD with multipart/form-data support
+  - `documents.ts`: Document upload/CRUD with DI-injected services
   - `health.ts`: Health check endpoints
+- **Services**: `packages/api/src/services/`
+  - `DocumentService.ts`: Document business logic with DI
 - **Infrastructure**: `packages/api/src/infrastructure/adapters/`
   - `FileSystemStorageAdapter.ts`: Local file storage implementation
 - **Repositories**: `packages/api/src/repositories/`
   - `DocumentRepository.ts`: Document repository interface and in-memory implementation
 - **Configuration**: `packages/api/src/config/`
-  - `storage.ts`: StorageService singleton
+  - `container.ts`: DI container setup with tsyringe
   - `env.ts`: Environment variables
 - **Middleware**: `packages/api/src/middleware/`
   - `errorHandler.ts`: Global error handling
@@ -301,5 +323,11 @@ Key environment variables (see `packages/api/.env.example`):
 - **Design Docs**: Architecture details are in Japanese in `docs/design/`
 - **Storage Pattern**: Files in storage, metadata in repository - never mix the two
 - **File Upload**: Document creation now requires multipart/form-data with file upload
-- **Storage Service**: Always use `StorageService.getInstance()` to access storage and repository
+- **Dependency Injection**:
+  - All services use `@injectable()` decorator
+  - Resolve dependencies with `container.resolve(Service)` in routes
+  - Register dependencies in `setupContainer()` function
+  - Use `@inject(TOKEN)` for constructor injection
+  - Import `reflect-metadata` at app entry point
+- **Service Layer**: Business logic goes in services, not routes
 - **Temporary Implementation**: `InMemoryDocumentRepository` will be replaced by PostgreSQL

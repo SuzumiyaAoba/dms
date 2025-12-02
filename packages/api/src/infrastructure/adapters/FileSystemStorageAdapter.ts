@@ -125,10 +125,10 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
     }
   }
 
-  async getDownloadUrl(url: string, expiresIn = 3600): Promise<string> {
+  async getDownloadUrl(url: string, _expiresIn = 3600): Promise<string> {
     // For file system storage, we return a relative URL that will be served by the API
     // The actual implementation would depend on how the API serves files
-    const fileName = path.basename(url);
+    const _fileName = path.basename(url);
     const relativePath = path.relative(this.basePath, url);
 
     // Return a URL path that can be served by the API
