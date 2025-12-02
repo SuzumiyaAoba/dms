@@ -13,7 +13,7 @@ import { container } from 'tsyringe';
 import { HTTP_STATUS } from '../config/constants';
 import { DocumentService } from '../services/DocumentService';
 import { DocumentSchema, UpdateDocumentSchema } from '../types/document';
-import { NotFoundError } from '../utils/errors';
+import { runEffectHandler } from '../utils/effect-helpers';
 import { paginatedResponse, successResponse } from '../utils/response';
 import { idSchema, paginationSchema } from '../utils/validation';
 
@@ -62,9 +62,10 @@ const listDocumentsRoute = createRoute({
 documents.openapi(listDocumentsRoute, async (c) => {
   const { page, limit } = c.req.valid('query');
   const documentService = container.resolve(DocumentService);
-  const { items, total } = await documentService.listDocuments(page, limit);
 
-  return paginatedResponse(c, items, page, limit, total);
+  return runEffectHandler(c, documentService.listDocuments(page, limit), ({ items, total }) =>
+    paginatedResponse(c, items, page, limit, total),
+  );
 });
 
 /**
@@ -119,13 +120,10 @@ const getDocumentRoute = createRoute({
 documents.openapi(getDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
   const documentService = container.resolve(DocumentService);
-  const document = await documentService.getDocumentById(id);
 
-  if (!document) {
-    throw new NotFoundError('Document', id);
-  }
-
-  return successResponse(c, document);
+  return runEffectHandler(c, documentService.getDocumentById(id), (document) =>
+    successResponse(c, document),
+  );
 });
 
 /**
@@ -216,15 +214,18 @@ documents.openapi(createDocumentRoute, async (c) => {
 
   // Upload document via service
   const documentService = container.resolve(DocumentService);
-  const document = await documentService.uploadDocument({
-    file,
-    title,
-    description,
-    tags,
-    metadata,
-  });
 
-  return successResponse(c, document, HTTP_STATUS.CREATED);
+  return runEffectHandler(
+    c,
+    documentService.uploadDocument({
+      file,
+      title,
+      description,
+      tags,
+      metadata,
+    }),
+    (document) => successResponse(c, document, HTTP_STATUS.CREATED),
+  );
 });
 
 /**
@@ -288,13 +289,10 @@ documents.openapi(updateDocumentRoute, async (c) => {
   const data = c.req.valid('json');
 
   const documentService = container.resolve(DocumentService);
-  const updated = await documentService.updateDocument(id, data);
 
-  if (!updated) {
-    throw new NotFoundError('Document', id);
-  }
-
-  return successResponse(c, updated);
+  return runEffectHandler(c, documentService.updateDocument(id, data), (updated) =>
+    successResponse(c, updated),
+  );
 });
 
 /**
@@ -353,13 +351,10 @@ documents.openapi(deleteDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
 
   const documentService = container.resolve(DocumentService);
-  const deleted = await documentService.deleteDocument(id);
 
-  if (!deleted) {
-    throw new NotFoundError('Document', id);
-  }
-
-  return successResponse(c, { message: 'Document deleted successfully' });
+  return runEffectHandler(c, documentService.deleteDocument(id), () =>
+    successResponse(c, { message: 'Document deleted successfully' }),
+  );
 });
 
 export default documents;

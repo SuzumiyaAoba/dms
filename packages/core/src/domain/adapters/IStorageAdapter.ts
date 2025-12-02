@@ -8,6 +8,24 @@
  * @module domain/adapters/IStorageAdapter
  */
 
+import { Data, type Effect } from 'effect';
+
+/**
+ * Storage error types
+ */
+export class StorageError extends Data.TaggedError('StorageError')<{
+  message: string;
+  cause?: unknown;
+}> {}
+
+export class FileNotFoundError extends Data.TaggedError('FileNotFoundError')<{
+  url: string;
+}> {
+  get message(): string {
+    return `File not found: ${this.url}`;
+  }
+}
+
 /**
  * Options for uploading a file
  */
@@ -61,28 +79,25 @@ export interface IStorageAdapter {
    * Upload a file to storage
    *
    * @param options - Upload options including file content and metadata
-   * @returns Promise resolving to upload result with URL and size
-   * @throws Error if upload fails
+   * @returns Effect that succeeds with upload result or fails with StorageError
    */
-  upload(options: UploadOptions): Promise<UploadResult>;
+  upload(options: UploadOptions): Effect.Effect<UploadResult, StorageError>;
 
   /**
    * Download a file from storage
    *
    * @param url - Storage URL or path returned from upload()
-   * @returns Promise resolving to file content as Buffer
-   * @throws Error if file not found or download fails
+   * @returns Effect that succeeds with file content or fails with FileNotFoundError | StorageError
    */
-  download(url: string): Promise<Buffer>;
+  download(url: string): Effect.Effect<Buffer, FileNotFoundError | StorageError>;
 
   /**
    * Delete a file from storage
    *
    * @param url - Storage URL or path returned from upload()
-   * @returns Promise resolving when deletion completes
-   * @throws Error if deletion fails
+   * @returns Effect that succeeds when deletion completes or fails with StorageError
    */
-  delete(url: string): Promise<void>;
+  delete(url: string): Effect.Effect<void, StorageError>;
 
   /**
    * Generate a temporary download URL
@@ -92,16 +107,15 @@ export interface IStorageAdapter {
    *
    * @param url - Storage URL or path
    * @param expiresIn - URL expiration time in seconds (default: 3600)
-   * @returns Promise resolving to download URL
-   * @throws Error if URL generation fails
+   * @returns Effect that succeeds with download URL or fails with StorageError
    */
-  getDownloadUrl(url: string, expiresIn?: number): Promise<string>;
+  getDownloadUrl(url: string, expiresIn?: number): Effect.Effect<string, StorageError>;
 
   /**
    * Check if a file exists in storage
    *
    * @param url - Storage URL or path
-   * @returns Promise resolving to true if file exists, false otherwise
+   * @returns Effect that succeeds with boolean indicating existence
    */
-  exists(url: string): Promise<boolean>;
+  exists(url: string): Effect.Effect<boolean, StorageError>;
 }
