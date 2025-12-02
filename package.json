@@ -22,5 +22,10 @@
     "*.{js,jsx,ts,tsx,json,css,md}": [
       "biome check --write --no-errors-on-unmatched"
     ]
+  },
+  "dependencies": {
+    "@effect/platform": "^0.93.6",
+    "@effect/platform-node": "^0.103.0",
+    "effect": "^3.19.8"
   }
 }

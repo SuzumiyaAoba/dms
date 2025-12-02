@@ -8,10 +8,12 @@
  */
 
 import type { IStorageAdapter } from '@dms/core';
+import { Effect } from 'effect';
 import { inject, injectable } from 'tsyringe';
 import { TOKENS } from '../config/container';
 import type { IDocumentRepository } from '../repositories/DocumentRepository';
 import type { Document, UpdateDocument } from '../types/document';
+import type { AppError } from '../utils/effect-errors';
 import { logger } from '../utils/logger';
 
 /**
@@ -41,14 +43,17 @@ export class DocumentService {
   /**
    * List documents with pagination
    */
-  async listDocuments(page: number, limit: number): Promise<{ items: Document[]; total: number }> {
+  listDocuments(
+    page: number,
+    limit: number,
+  ): Effect.Effect<{ items: Document[]; total: number }, AppError> {
     return this.documentRepository.findAll(page, limit);
   }
 
   /**
    * Get a document by ID
    */
-  async getDocumentById(id: string): Promise<Document | null> {
+  getDocumentById(id: string): Effect.Effect<Document, AppError> {
     return this.documentRepository.findById(id);
   }
 
@@ -60,76 +65,73 @@ export class DocumentService {
    * 2. Creates document metadata in repository
    * 3. Returns the created document
    */
-  async uploadDocument(data: UploadDocumentData): Promise<Document> {
-    const { file, title, description, tags, metadata } = data;
+  uploadDocument(data: UploadDocumentData): Effect.Effect<Document, AppError> {
+    return Effect.gen(this, function* () {
+      const { file, title, description, tags, metadata } = data;
 
-    // Upload file to storage
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadResult = await this.storageAdapter.upload({
-      fileName: file.name,
-      mimeType: file.type,
-      buffer,
-      metadata: metadata
-        ? Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, String(v)]))
-        : undefined,
-    });
-
-    logger.info(
-      {
+      // Upload file to storage
+      const buffer = Buffer.from(yield* Effect.promise(() => file.arrayBuffer()));
+      const uploadResult = yield* this.storageAdapter.upload({
         fileName: file.name,
-        size: uploadResult.size,
-        url: uploadResult.url,
-      },
-      'File uploaded successfully',
-    );
+        mimeType: file.type,
+        buffer,
+        metadata: metadata
+          ? Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, String(v)]))
+          : undefined,
+      });
 
-    // Create document metadata
-    const document = await this.documentRepository.create({
-      title: title || file.name,
-      description,
-      tags,
-      metadata,
-      fileUrl: uploadResult.url,
-      fileName: file.name,
-      fileSize: uploadResult.size,
-      mimeType: file.type,
+      logger.info(
+        {
+          fileName: file.name,
+          size: uploadResult.size,
+          url: uploadResult.url,
+        },
+        'File uploaded successfully',
+      );
+
+      // Create document metadata
+      const document = yield* this.documentRepository.create({
+        title: title || file.name,
+        description,
+        tags,
+        metadata,
+        fileUrl: uploadResult.url,
+        fileName: file.name,
+        fileSize: uploadResult.size,
+        mimeType: file.type,
+      });
+
+      logger.info({ documentId: document.id }, 'Document created successfully');
+
+      return document;
     });
-
-    logger.info({ documentId: document.id }, 'Document created successfully');
-
-    return document;
   }
 
   /**
    * Update document metadata
    */
-  async updateDocument(id: string, data: UpdateDocument): Promise<Document | null> {
-    const updated = await this.documentRepository.update(id, data);
-
-    if (updated) {
+  updateDocument(id: string, data: UpdateDocument): Effect.Effect<Document, AppError> {
+    return Effect.gen(this, function* () {
+      const updated = yield* this.documentRepository.update(id, data);
       logger.info({ documentId: id }, 'Document updated successfully');
-    }
-
-    return updated;
+      return updated;
+    });
   }
 
   /**
    * Delete a document (soft delete)
    */
-  async deleteDocument(id: string): Promise<boolean> {
-    const deleted = await this.documentRepository.delete(id);
-
-    if (deleted) {
+  deleteDocument(id: string): Effect.Effect<void, AppError> {
+    return Effect.gen(this, function* () {
+      yield* this.documentRepository.delete(id);
       logger.info({ documentId: id }, 'Document deleted successfully');
-    }
-
-    return deleted;
+    });
   }
 
   /**
    * Get download URL for a document file
    */
-  async getDownloadUrl(document: Document, expiresIn?: number): Promise<string> {
+  getDownloadUrl(document: Document, expiresIn?: number): Effect.Effect<string, AppError> {
     return this.storageAdapter.getDownloadUrl(document.fileUrl, expiresIn);
   }
 }
