@@ -11,16 +11,21 @@
 import { serve } from '@hono/node-server';
 import app from './app';
 import { env } from './config/env';
-import { seedDocuments } from './storage/documentStorage';
+import { StorageService } from './config/storage';
 import { logger } from './utils/logger';
 
 const port = env.PORT;
 const host = env.HOST;
 
-// Seed sample documents in development mode
-if (env.NODE_ENV === 'development') {
-  seedDocuments();
-  logger.info('Seeded sample documents for development');
+// Initialize storage service
+async function initializeServer() {
+  try {
+    await StorageService.initialize();
+    logger.info('Storage service initialized successfully');
+  } catch (error) {
+    logger.error({ error }, 'Failed to initialize storage service');
+    process.exit(1);
+  }
 }
 
 // Log server startup information
@@ -30,6 +35,9 @@ logger.info({
   host,
   msg: 'Starting DMS API Server',
 });
+
+// Initialize storage before starting server
+await initializeServer();
 
 /**
  * Start the HTTP server

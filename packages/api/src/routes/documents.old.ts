@@ -2,7 +2,7 @@
  * Document routes module
  *
  * This module provides OpenAPI-documented endpoints for document management operations
- * including file upload, metadata management, and retrieval.
+ * including CRUD operations (Create, Read, Update, Delete).
  *
  * @module routes/documents
  */
@@ -10,7 +10,13 @@
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { HTTP_STATUS } from '../config/constants';
-import { StorageService } from '../config/storage';
+import {
+  createDocument,
+  deleteDocument,
+  getDocumentById,
+  getDocuments,
+  updateDocument,
+} from '../storage/documentStorage';
 import { CreateDocumentSchema, DocumentSchema, UpdateDocumentSchema } from '../types/document';
 import { NotFoundError } from '../utils/errors';
 import { paginatedResponse, successResponse } from '../utils/response';
@@ -60,8 +66,7 @@ const listDocumentsRoute = createRoute({
 
 documents.openapi(listDocumentsRoute, async (c) => {
   const { page, limit } = c.req.valid('query');
-  const storage = StorageService.getInstance();
-  const { items, total } = await storage.documentRepository.findAll(page, limit);
+  const { items, total } = getDocuments(page, limit);
 
   return paginatedResponse(c, items, page, limit, total);
 });
@@ -117,8 +122,7 @@ const getDocumentRoute = createRoute({
 
 documents.openapi(getDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
-  const storage = StorageService.getInstance();
-  const document = await storage.documentRepository.findById(id);
+  const document = getDocumentById(id);
 
   if (!document) {
     throw new NotFoundError('Document', id);
@@ -128,39 +132,26 @@ documents.openapi(getDocumentRoute, async (c) => {
 });
 
 /**
- * POST /documents - Create a new document with file upload
+ * POST /documents - Create a new document
  */
 const createDocumentRoute = createRoute({
   method: 'post',
   path: '/',
   tags: ['Documents'],
-  summary: 'Upload a new document',
-  description:
-    'Upload a new document file with metadata. The file will be stored and text extraction will be queued.',
+  summary: 'Create a new document',
+  description: 'Create a new document with the provided title and content.',
   request: {
     body: {
       content: {
-        'multipart/form-data': {
-          schema: z.object({
-            file: z.any().openapi({ type: 'string', format: 'binary' }),
-            title: z.string().min(1).max(1000).optional().openapi({ example: 'My Document.pdf' }),
-            description: z.string().optional().openapi({ example: 'Document description' }),
-            tags: z
-              .string()
-              .optional()
-              .openapi({ example: 'tag1,tag2,tag3', description: 'Comma-separated tags' }),
-            metadata: z
-              .string()
-              .optional()
-              .openapi({ example: '{"author":"John Doe"}', description: 'JSON metadata' }),
-          }),
+        'application/json': {
+          schema: CreateDocumentSchema,
         },
       },
     },
   },
   responses: {
     201: {
-      description: 'Document uploaded successfully',
+      description: 'Document created successfully',
       content: {
         'application/json': {
           schema: z.object({
@@ -175,14 +166,14 @@ const createDocumentRoute = createRoute({
       },
     },
     400: {
-      description: 'Invalid input or no file provided',
+      description: 'Invalid input',
       content: {
         'application/json': {
           schema: z.object({
             success: z.boolean().openapi({ example: false }),
             error: z.object({
               code: z.string().openapi({ example: 'VALIDATION_ERROR' }),
-              message: z.string().openapi({ example: 'No file provided' }),
+              message: z.string().openapi({ example: 'Validation failed' }),
               details: z.array(z.unknown()).optional(),
             }),
             meta: z.object({
@@ -197,57 +188,21 @@ const createDocumentRoute = createRoute({
 });
 
 documents.openapi(createDocumentRoute, async (c) => {
-  const body = await c.req.parseBody();
-  const file = body.file;
-
-  if (!file || !(file instanceof File)) {
-    throw new Error('No file provided');
-  }
-
-  // Parse form data
-  const title = (body.title as string) || file.name;
-  const description = body.description as string | undefined;
-  const tagsString = body.tags as string | undefined;
-  const metadataString = body.metadata as string | undefined;
-
-  const tags = tagsString ? tagsString.split(',').map((t) => t.trim()) : [];
-  const metadata = metadataString ? JSON.parse(metadataString) : {};
-
-  // Upload file to storage
-  const storage = StorageService.getInstance();
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const uploadResult = await storage.storageAdapter.upload({
-    fileName: file.name,
-    mimeType: file.type,
-    buffer,
-    metadata,
-  });
-
-  // Create document metadata
-  const document = await storage.documentRepository.create({
-    title,
-    description,
-    tags,
-    metadata,
-    fileUrl: uploadResult.url,
-    fileName: file.name,
-    fileSize: uploadResult.size,
-    mimeType: file.type,
-  });
+  const data = c.req.valid('json');
+  const document = createDocument(data);
 
   return successResponse(c, document, HTTP_STATUS.CREATED);
 });
 
 /**
- * PATCH /documents/:id - Update document metadata
+ * PATCH /documents/:id - Update a document
  */
 const updateDocumentRoute = createRoute({
   method: 'patch',
   path: '/{id}',
   tags: ['Documents'],
-  summary: 'Update document metadata',
-  description: 'Update document metadata (title, description, tags, etc.). File cannot be changed.',
+  summary: 'Update a document',
+  description: 'Update an existing document with new title and/or content.',
   request: {
     params: idSchema,
     body: {
@@ -299,9 +254,7 @@ documents.openapi(updateDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
   const data = c.req.valid('json');
 
-  const storage = StorageService.getInstance();
-  const updated = await storage.documentRepository.update(id, data);
-
+  const updated = updateDocument(id, data);
   if (!updated) {
     throw new NotFoundError('Document', id);
   }
@@ -317,8 +270,7 @@ const deleteDocumentRoute = createRoute({
   path: '/{id}',
   tags: ['Documents'],
   summary: 'Delete a document',
-  description:
-    'Soft delete a document by its unique identifier. The file will be marked as deleted but not physically removed.',
+  description: 'Delete a document by its unique identifier.',
   request: {
     params: idSchema,
   },
@@ -364,9 +316,7 @@ const deleteDocumentRoute = createRoute({
 documents.openapi(deleteDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
 
-  const storage = StorageService.getInstance();
-  const deleted = await storage.documentRepository.delete(id);
-
+  const deleted = deleteDocument(id);
   if (!deleted) {
     throw new NotFoundError('Document', id);
   }
