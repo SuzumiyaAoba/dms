@@ -1,2 +1,2 @@
 // Domain models and logic
-export {};
+export * from './adapters/IStorageAdapter';
