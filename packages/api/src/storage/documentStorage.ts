@@ -1,123 +1,97 @@
 /**
- * In-memory document storage module
+ * Document storage entry point
  *
- * Temporary storage implementation for documents.
- * This will be replaced with a proper database in the future.
+ * Selects the configured storage backend (memory or file) and exposes
+ * a simple function-based API for the rest of the application.
  *
  * @module storage/documentStorage
  */
 
-import { uuidv7 } from 'uuidv7';
+import { env } from '../config/env';
 import type { CreateDocument, Document, UpdateDocument } from '../types/document';
+import { logger } from '../utils/logger';
+import { FileDocumentStorage } from './fileStorage';
+import type { DocumentStorage } from './interface';
+import { MemoryDocumentStorage } from './memoryStorage';
 
 /**
- * In-memory document store
+ * Storage instance selected based on configuration.
  */
-const documents = new Map<string, Document>();
+const storage: DocumentStorage = createStorage();
 
 /**
- * Get all documents
+ * Create the configured storage backend.
+ */
+function createStorage(): DocumentStorage {
+  if (env.STORAGE_DRIVER === 'file') {
+    logger.info(
+      { driver: env.STORAGE_DRIVER, filePath: env.FILE_STORAGE_PATH },
+      'Using file-based document storage',
+    );
+    return new FileDocumentStorage(env.FILE_STORAGE_PATH);
+  }
+
+  logger.info({ driver: env.STORAGE_DRIVER }, 'Using in-memory document storage');
+  return new MemoryDocumentStorage();
+}
+
+/**
+ * Get all documents sorted by creation date
  */
 export function getAllDocuments(): Document[] {
-  return Array.from(documents.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  return storage.getAllDocuments();
 }
 
 /**
  * Get documents with pagination
  */
 export function getDocuments(page: number, limit: number): { items: Document[]; total: number } {
-  const allDocs = getAllDocuments();
-  const start = (page - 1) * limit;
-  const end = start + limit;
-
-  return {
-    items: allDocs.slice(start, end),
-    total: allDocs.length,
-  };
+  return storage.getDocuments(page, limit);
 }
 
 /**
  * Get a document by ID
  */
 export function getDocumentById(id: string): Document | undefined {
-  return documents.get(id);
+  return storage.getDocumentById(id);
 }
 
 /**
  * Create a new document
  */
 export function createDocument(data: CreateDocument): Document {
-  const now = new Date().toISOString();
-  const document: Document = {
-    id: uuidv7(),
-    title: data.title,
-    content: data.content,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  documents.set(document.id, document);
-  return document;
+  return storage.createDocument(data);
 }
 
 /**
  * Update a document
  */
 export function updateDocument(id: string, data: UpdateDocument): Document | undefined {
-  const document = documents.get(id);
-  if (!document) {
-    return undefined;
-  }
-
-  const updated: Document = {
-    ...document,
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-
-  documents.set(id, updated);
-  return updated;
+  return storage.updateDocument(id, data);
 }
 
 /**
  * Delete a document
  */
 export function deleteDocument(id: string): boolean {
-  return documents.delete(id);
+  return storage.deleteDocument(id);
 }
 
 /**
  * Clear all documents (for testing)
  */
 export function clearAllDocuments(): void {
-  documents.clear();
+  storage.clearAllDocuments();
 }
 
 /**
  * Seed initial documents (for development)
  */
 export function seedDocuments(): void {
-  const sampleDocuments: CreateDocument[] = [
-    {
-      title: 'Getting Started Guide',
-      content:
-        'Welcome to the Document Management System! This guide will help you get started with managing your documents.',
-    },
-    {
-      title: 'API Documentation',
-      content:
-        'This document describes the API endpoints available in the DMS. Use the /api/v1 prefix for all API calls.',
-    },
-    {
-      title: 'Project Roadmap',
-      content:
-        'Our project roadmap includes implementing LLM-powered search, document versioning, and collaboration features.',
-    },
-  ];
-
-  for (const doc of sampleDocuments) {
-    createDocument(doc);
-  }
+  storage.seedDocuments();
 }
+
+/**
+ * Export the selected storage instance for advanced usage (e.g., tests).
+ */
+export { storage as documentStorage };

@@ -35,6 +35,12 @@ const envSchema = z.object({
   // Logging
   /** Log level (fatal, error, warn, info, debug, trace) */
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  // Storage
+  /** Storage driver to use for documents */
+  STORAGE_DRIVER: z.enum(['memory', 'file']).default('memory'),
+  /** File path used when STORAGE_DRIVER=file */
+  FILE_STORAGE_PATH: z.string().default('data/documents.json'),
 });
 
 /**
