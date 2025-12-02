@@ -12,8 +12,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { IStorageAdapter, UploadOptions, UploadResult } from '@dms/core';
 import { Effect } from 'effect';
-import { FileNotFoundError, StorageError } from '../../utils/effect-errors';
-import { logger } from '../../utils/logger';
+import { FileNotFoundError, StorageError } from '@/utils/effect-errors';
+import { logger } from '@/utils/logger';
 
 /**
  * File system storage adapter

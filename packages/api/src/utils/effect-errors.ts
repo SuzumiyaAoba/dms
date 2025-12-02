@@ -9,7 +9,7 @@
 
 import { FileNotFoundError, StorageError } from '@dms/core';
 import { Data } from 'effect';
-import { HTTP_STATUS } from '../config/constants';
+import { HTTP_STATUS } from '@/config/constants';
 
 /**
  * Base error class for Effect-based errors

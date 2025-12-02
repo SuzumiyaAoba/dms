@@ -10,11 +10,11 @@
 import type { IStorageAdapter } from '@dms/core';
 import { Effect } from 'effect';
 import { inject, injectable } from 'tsyringe';
-import { TOKENS } from '../config/container';
-import type { IDocumentRepository } from '../repositories/DocumentRepository';
-import type { Document, UpdateDocument } from '../types/document';
-import type { AppError } from '../utils/effect-errors';
-import { logger } from '../utils/logger';
+import { TOKENS } from '@/config/container';
+import type { IDocumentRepository } from '@/repositories/DocumentRepository';
+import type { Document, UpdateDocument } from '@/types/document';
+import type { AppError } from '@/utils/effect-errors';
+import { logger } from '@/utils/logger';
 
 /**
  * Document upload data

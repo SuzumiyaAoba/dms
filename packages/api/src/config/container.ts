@@ -11,10 +11,10 @@ import 'reflect-metadata';
 import * as path from 'node:path';
 import type { IStorageAdapter } from '@dms/core';
 import { container } from 'tsyringe';
-import { FileSystemStorageAdapter } from '../infrastructure/adapters/FileSystemStorageAdapter';
-import type { IDocumentRepository } from '../repositories/DocumentRepository';
-import { InMemoryDocumentRepository } from '../repositories/DocumentRepository';
-import { logger } from '../utils/logger';
+import { FileSystemStorageAdapter } from '@/infrastructure/adapters/FileSystemStorageAdapter';
+import type { IDocumentRepository } from '@/repositories/DocumentRepository';
+import { InMemoryDocumentRepository } from '@/repositories/DocumentRepository';
+import { logger } from '@/utils/logger';
 
 /**
  * Tokens for dependency injection

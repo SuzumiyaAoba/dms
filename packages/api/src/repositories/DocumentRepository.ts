@@ -9,8 +9,8 @@
 
 import { Effect } from 'effect';
 import { uuidv7 } from 'uuidv7';
-import type { CreateDocument, Document, UpdateDocument } from '../types/document';
-import { NotFoundError, type RepositoryError } from '../utils/effect-errors';
+import type { CreateDocument, Document, UpdateDocument } from '@/types/document';
+import { NotFoundError, type RepositoryError } from '@/utils/effect-errors';
 
 /**
  * Document repository interface
