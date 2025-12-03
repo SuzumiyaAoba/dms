@@ -9,7 +9,7 @@
  */
 
 import { cors as honoCors } from 'hono/cors';
-import { env } from '../config/env';
+import { env } from '@/config/env';
 
 /**
  * CORS middleware configuration

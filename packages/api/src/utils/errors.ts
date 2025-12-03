@@ -9,7 +9,7 @@
  * @module utils/errors
  */
 
-import { ERROR_CODES, HTTP_STATUS } from '../config/constants';
+import { ERROR_CODES, HTTP_STATUS } from '@/config/constants';
 
 /**
  * Base application error class

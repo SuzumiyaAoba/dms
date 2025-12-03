@@ -6,10 +6,10 @@
  * @module utils/effect-helpers
  */
 
-import { Effect } from 'effect';
+import { Effect, Either } from 'effect';
 import type { Context } from 'hono';
-import type { AppError } from './effect-errors';
-import { logger } from './logger';
+import type { AppError } from '@/utils/effect-errors';
+import { logger } from '@/utils/logger';
 
 /**
  * Run an Effect program and handle errors appropriately
@@ -61,15 +61,24 @@ export function errorResponse(c: Context, error: AppError) {
  * @param onSuccess - Callback to create response on success
  * @returns Response
  */
-export async function runEffectHandler<A>(
+export async function runEffectHandler<A, E extends AppError, R>(
   c: Context,
-  effect: Effect.Effect<A, AppError>,
+  effect: Effect.Effect<A, E, R>,
   onSuccess: (result: A) => Response | Promise<Response>,
 ): Promise<Response> {
-  const result = await Effect.runPromise(Effect.either(effect));
+  // Get the app layer from context (will be set by middleware)
+  const appLayer = c.get('appLayer');
 
-  if (result._tag === 'Left') {
-    return errorResponse(c, result.left);
+  const result = await Effect.runPromise(
+    effect.pipe(Effect.provide(appLayer), Effect.either) as Effect.Effect<
+      Either.Either<A, E>,
+      never,
+      never
+    >,
+  );
+
+  if (Either.isLeft(result)) {
+    return errorResponse(c, result.left as AppError);
   }
 
   return onSuccess(result.right);

@@ -11,11 +11,13 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { logger as honoLogger } from 'hono/logger';
-import { cors } from './middleware/cors';
-import { errorHandler } from './middleware/errorHandler';
-import { loggerMiddleware } from './middleware/logger';
-import { notFound } from './middleware/notFound';
-import routes from './routes';
+import { makeAppLayer } from '@/config/layers';
+import { cors } from '@/middleware/cors';
+import { errorHandler } from '@/middleware/errorHandler';
+import { loggerMiddleware } from '@/middleware/logger';
+import { notFound } from '@/middleware/notFound';
+import routes from '@/routes';
+import '@/types/hono';
 
 /**
  * Main Hono application instance with OpenAPI support
@@ -52,6 +54,15 @@ import routes from './routes';
  * ```
  */
 const app = new OpenAPIHono();
+
+// Initialize application layer
+const appLayer = makeAppLayer();
+
+// Middleware to inject app layer into context
+app.use('*', async (c, next) => {
+  c.set('appLayer', appLayer);
+  await next();
+});
 
 // Global middleware
 app.use('*', honoLogger());

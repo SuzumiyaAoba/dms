@@ -9,7 +9,7 @@
  */
 
 import { z } from 'zod';
-import { PAGINATION } from '../config/constants';
+import { PAGINATION } from '@/config/constants';
 
 /**
  * Schema for validating resource ID parameters

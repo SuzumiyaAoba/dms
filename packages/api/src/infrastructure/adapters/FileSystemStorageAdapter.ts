@@ -11,9 +11,10 @@ import { randomBytes } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { IStorageAdapter, UploadOptions, UploadResult } from '@dms/core';
-import { Effect } from 'effect';
-import { FileNotFoundError, StorageError } from '../../utils/effect-errors';
-import { logger } from '../../utils/logger';
+import { Effect, Layer } from 'effect';
+import { StorageAdapter } from '@/services/context';
+import { FileNotFoundError, StorageError } from '@/utils/effect-errors';
+import { logger } from '@/utils/logger';
 
 /**
  * File system storage adapter
@@ -176,3 +177,20 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
     return randomBytes(8).toString('hex');
   }
 }
+
+/**
+ * Create a Layer for FileSystemStorageAdapter
+ *
+ * @param basePath - Base directory for file storage
+ * @returns Layer that provides StorageAdapter
+ */
+export const makeFileSystemStorageLayer = (basePath: string) =>
+  Layer.effect(
+    StorageAdapter,
+    Effect.gen(function* () {
+      const adapter = new FileSystemStorageAdapter(basePath);
+      yield* Effect.promise(() => adapter.initialize());
+      logger.info({ type: 'filesystem', path: basePath }, 'Storage adapter initialized');
+      return adapter;
+    }),
+  );
