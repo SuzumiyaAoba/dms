@@ -7,8 +7,9 @@
  * @module repositories/DocumentRepository
  */
 
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { uuidv7 } from 'uuidv7';
+import { DocumentRepositoryService } from '@/services/context';
 import type { CreateDocument, Document, UpdateDocument } from '@/types/document';
 import { NotFoundError, type RepositoryError } from '@/utils/effect-errors';
 
@@ -172,3 +173,13 @@ export class InMemoryDocumentRepository implements IDocumentRepository {
     });
   }
 }
+
+/**
+ * Layer for InMemoryDocumentRepository
+ *
+ * Provides an in-memory implementation of IDocumentRepository
+ */
+export const InMemoryDocumentRepositoryLayer = Layer.succeed(
+  DocumentRepositoryService,
+  new InMemoryDocumentRepository(),
+);

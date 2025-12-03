@@ -9,7 +9,6 @@
 
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { container } from 'tsyringe';
 import { HTTP_STATUS } from '@/config/constants';
 import { DocumentService } from '@/services/DocumentService';
 import { DocumentSchema, UpdateDocumentSchema } from '@/types/document';
@@ -61,9 +60,8 @@ const listDocumentsRoute = createRoute({
 
 documents.openapi(listDocumentsRoute, async (c) => {
   const { page, limit } = c.req.valid('query');
-  const documentService = container.resolve(DocumentService);
 
-  return runEffectHandler(c, documentService.listDocuments(page, limit), ({ items, total }) =>
+  return runEffectHandler(c, DocumentService.listDocuments(page, limit), ({ items, total }) =>
     paginatedResponse(c, items, page, limit, total),
   );
 });
@@ -119,9 +117,8 @@ const getDocumentRoute = createRoute({
 
 documents.openapi(getDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
-  const documentService = container.resolve(DocumentService);
 
-  return runEffectHandler(c, documentService.getDocumentById(id), (document) =>
+  return runEffectHandler(c, DocumentService.getDocumentById(id), (document) =>
     successResponse(c, document),
   );
 });
@@ -212,12 +209,9 @@ documents.openapi(createDocumentRoute, async (c) => {
   const tags = tagsString ? tagsString.split(',').map((t) => t.trim()) : undefined;
   const metadata = metadataString ? JSON.parse(metadataString) : undefined;
 
-  // Upload document via service
-  const documentService = container.resolve(DocumentService);
-
   return runEffectHandler(
     c,
-    documentService.uploadDocument({
+    DocumentService.uploadDocument({
       file,
       title,
       description,
@@ -288,9 +282,7 @@ documents.openapi(updateDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
   const data = c.req.valid('json');
 
-  const documentService = container.resolve(DocumentService);
-
-  return runEffectHandler(c, documentService.updateDocument(id, data), (updated) =>
+  return runEffectHandler(c, DocumentService.updateDocument(id, data), (updated) =>
     successResponse(c, updated),
   );
 });
@@ -350,9 +342,7 @@ const deleteDocumentRoute = createRoute({
 documents.openapi(deleteDocumentRoute, async (c) => {
   const { id } = c.req.valid('param');
 
-  const documentService = container.resolve(DocumentService);
-
-  return runEffectHandler(c, documentService.deleteDocument(id), () =>
+  return runEffectHandler(c, DocumentService.deleteDocument(id), () =>
     successResponse(c, { message: 'Document deleted successfully' }),
   );
 });
