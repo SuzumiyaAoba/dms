@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API server for DMS",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
