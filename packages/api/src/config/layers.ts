@@ -13,6 +13,7 @@ import { makeFileSystemStorageLayer } from '@/infrastructure/adapters/FileSystem
 import { LibsqlDocumentRepositoryLayer } from '@/infrastructure/database/LibsqlDocumentRepository';
 import { LibsqlClientLayer } from '@/infrastructure/database/libsql';
 import { InMemoryDocumentRepositoryLayer } from '@/repositories/DocumentRepository';
+import type { DocumentRepositoryService, StorageAdapter } from '@/services/context';
 import { logger } from '@/utils/logger';
 
 /**
@@ -43,7 +44,7 @@ export function makeAppLayer() {
   }
 
   // Create repository layer based on configuration
-  let repositoryLayer: Layer.Layer<any, any, any>;
+  let repositoryLayer: typeof InMemoryDocumentRepositoryLayer;
   switch (databaseType) {
     case 'memory':
       repositoryLayer = InMemoryDocumentRepositoryLayer;
@@ -51,7 +52,9 @@ export function makeAppLayer() {
       break;
 
     case 'libsql':
-      repositoryLayer = LibsqlDocumentRepositoryLayer.pipe(Layer.provide(LibsqlClientLayer));
+      repositoryLayer = LibsqlDocumentRepositoryLayer.pipe(
+        Layer.provide(LibsqlClientLayer),
+      ) as typeof InMemoryDocumentRepositoryLayer;
       logger.info('Using LibSQL document repository');
       break;
 
@@ -60,7 +63,7 @@ export function makeAppLayer() {
   }
 
   // Compose all layers
-  const appLayer = Layer.mergeAll(storageLayer, repositoryLayer) as any;
+  const appLayer = Layer.mergeAll(storageLayer, repositoryLayer);
 
   logger.info('Application layer initialized successfully');
 

@@ -36,6 +36,42 @@ interface DocumentRow {
 }
 
 /**
+ * Type guard to validate database row matches DocumentRow shape
+ */
+function isDocumentRow(row: unknown): row is DocumentRow {
+  if (typeof row !== 'object' || row === null) {
+    return false;
+  }
+
+  const r = row as Record<string, unknown>;
+
+  return (
+    typeof r.id === 'string' &&
+    typeof r.title === 'string' &&
+    (r.description === null || typeof r.description === 'string') &&
+    typeof r.tags === 'string' &&
+    typeof r.metadata === 'string' &&
+    typeof r.file_url === 'string' &&
+    typeof r.file_name === 'string' &&
+    typeof r.file_size === 'number' &&
+    typeof r.mime_type === 'string' &&
+    (r.extracted_text === null || typeof r.extracted_text === 'string') &&
+    (r.embedding_id === null || typeof r.embedding_id === 'string') &&
+    typeof r.status === 'string' &&
+    typeof r.created_at === 'string' &&
+    typeof r.updated_at === 'string' &&
+    (r.deleted_at === null || typeof r.deleted_at === 'string')
+  );
+}
+
+/**
+ * Validate document status
+ */
+function isValidStatus(status: string): status is 'processing' | 'ready' | 'error' {
+  return status === 'processing' || status === 'ready' || status === 'error';
+}
+
+/**
  * LibSQL document repository implementation
  *
  * Provides persistent storage for document metadata using LibSQL.
@@ -44,88 +80,171 @@ export class LibsqlDocumentRepository implements IDocumentRepository {
   constructor(private readonly client: Client) {}
 
   /**
-   * Convert database row to Document type
+   * Convert database row to Document type with validation
    */
-  private rowToDocument(row: DocumentRow): Document {
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      tags: JSON.parse(row.tags) as string[],
-      metadata: JSON.parse(row.metadata) as Record<string, unknown>,
-      fileUrl: row.file_url,
-      fileName: row.file_name,
-      fileSize: row.file_size,
-      mimeType: row.mime_type,
-      extractedText: row.extracted_text,
-      embeddingId: row.embedding_id,
-      status: row.status as 'processing' | 'ready' | 'error',
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      deletedAt: row.deleted_at,
-    };
+  private rowToDocument(row: DocumentRow): Effect.Effect<Document, RepositoryError> {
+    return Effect.gen(function* () {
+      // Parse and validate tags
+      const tags = yield* Effect.try({
+        try: () => JSON.parse(row.tags),
+        catch: (error) =>
+          new RepositoryError({
+            message: 'Failed to parse tags JSON',
+            cause: error instanceof Error ? error : new Error(String(error)),
+          }),
+      });
+
+      if (!Array.isArray(tags) || !tags.every((tag) => typeof tag === 'string')) {
+        return yield* Effect.fail(
+          new RepositoryError({
+            message: 'Invalid tags format: expected array of strings',
+          }),
+        );
+      }
+
+      // Parse and validate metadata
+      const metadata = yield* Effect.try({
+        try: () => JSON.parse(row.metadata),
+        catch: (error) =>
+          new RepositoryError({
+            message: 'Failed to parse metadata JSON',
+            cause: error instanceof Error ? error : new Error(String(error)),
+          }),
+      });
+
+      if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
+        return yield* Effect.fail(
+          new RepositoryError({
+            message: 'Invalid metadata format: expected object',
+          }),
+        );
+      }
+
+      // Validate status
+      if (!isValidStatus(row.status)) {
+        return yield* Effect.fail(
+          new RepositoryError({
+            message: `Invalid status value: ${row.status}`,
+          }),
+        );
+      }
+
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        tags: tags as string[],
+        metadata: metadata as Record<string, unknown>,
+        fileUrl: row.file_url,
+        fileName: row.file_name,
+        fileSize: row.file_size,
+        mimeType: row.mime_type,
+        extractedText: row.extracted_text,
+        embeddingId: row.embedding_id,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        deletedAt: row.deleted_at,
+      };
+    });
   }
 
   findAll(
     page: number,
     limit: number,
   ): Effect.Effect<{ items: Document[]; total: number }, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        // Get total count
-        const countResult = await this.client.execute({
-          sql: 'SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL',
-          args: [],
-        });
-        const total = (countResult.rows[0].count as number) || 0;
+    return Effect.gen(this, function* () {
+      // Get total count
+      const countResult = yield* Effect.tryPromise({
+        try: () =>
+          this.client.execute({
+            sql: 'SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL',
+            args: [],
+          }),
+        catch: (error) =>
+          new RepositoryError({
+            message: 'Failed to count documents',
+            cause: error instanceof Error ? error : new Error(String(error)),
+          }),
+      });
 
-        // Get paginated results
-        const offset = (page - 1) * limit;
-        const result = await this.client.execute({
-          sql: `
+      const countRow = countResult.rows[0];
+      if (!countRow || typeof countRow.count !== 'number') {
+        return yield* Effect.fail(
+          new RepositoryError({
+            message: 'Invalid count result from database',
+          }),
+        );
+      }
+      const total = countRow.count;
+
+      // Get paginated results
+      const offset = (page - 1) * limit;
+      const result = yield* Effect.tryPromise({
+        try: () =>
+          this.client.execute({
+            sql: `
             SELECT * FROM documents
             WHERE deleted_at IS NULL
             ORDER BY created_at DESC
             LIMIT ? OFFSET ?
           `,
-          args: [limit, offset],
-        });
+            args: [limit, offset],
+          }),
+        catch: (error) =>
+          new RepositoryError({
+            message: 'Failed to fetch documents',
+            cause: error instanceof Error ? error : new Error(String(error)),
+          }),
+      });
 
-        const items = result.rows.map((row) => this.rowToDocument(row as unknown as DocumentRow));
+      // Validate and convert rows
+      const items: Document[] = [];
+      for (const row of result.rows) {
+        if (!isDocumentRow(row)) {
+          return yield* Effect.fail(
+            new RepositoryError({
+              message: 'Invalid row format from database',
+            }),
+          );
+        }
+        const document = yield* this.rowToDocument(row);
+        items.push(document);
+      }
 
-        return { items, total };
-      },
-      catch: (error) =>
-        new RepositoryError({
-          message: 'Failed to find all documents',
-          cause: error instanceof Error ? error : new Error(String(error)),
-        }),
+      return { items, total };
     });
   }
 
   findById(id: string): Effect.Effect<Document, NotFoundError | RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const result = await this.client.execute({
-          sql: 'SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL',
-          args: [id],
-        });
+    return Effect.gen(this, function* () {
+      const result = yield* Effect.tryPromise({
+        try: () =>
+          this.client.execute({
+            sql: 'SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL',
+            args: [id],
+          }),
+        catch: (error) =>
+          new RepositoryError({
+            message: 'Failed to query document by ID',
+            cause: error instanceof Error ? error : new Error(String(error)),
+          }),
+      });
 
-        if (result.rows.length === 0) {
-          throw new NotFoundError({ resource: 'Document', identifier: id });
-        }
+      if (result.rows.length === 0) {
+        return yield* Effect.fail(new NotFoundError({ resource: 'Document', identifier: id }));
+      }
 
-        return this.rowToDocument(result.rows[0] as unknown as DocumentRow);
-      },
-      catch: (error) => {
-        if (error instanceof NotFoundError) {
-          return error;
-        }
-        return new RepositoryError({
-          message: 'Failed to find document by ID',
-          cause: error instanceof Error ? error : new Error(String(error)),
-        });
-      },
+      const row = result.rows[0];
+      if (!isDocumentRow(row)) {
+        return yield* Effect.fail(
+          new RepositoryError({
+            message: 'Invalid row format from database',
+          }),
+        );
+      }
+
+      return yield* this.rowToDocument(row);
     });
   }
 
