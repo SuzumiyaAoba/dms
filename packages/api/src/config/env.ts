@@ -35,6 +35,14 @@ const envSchema = z.object({
   // Logging
   /** Log level (fatal, error, warn, info, debug, trace) */
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  // Database
+  /** Database type (memory, libsql) */
+  DATABASE_TYPE: z.enum(['memory', 'libsql']).default('memory'),
+  /** LibSQL database URL (file path or remote URL) */
+  DATABASE_URL: z.string().optional(),
+  /** LibSQL auth token for remote connections */
+  DATABASE_AUTH_TOKEN: z.string().optional(),
 });
 
 /**

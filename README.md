@@ -11,7 +11,8 @@ A modern, scalable document management system with AI-powered search capabilitie
   - Separation of document metadata and file storage
 - **Repository Pattern**:
   - Clean separation between domain logic and data access
-  - Currently using in-memory repository (PostgreSQL implementation planned)
+  - Switchable storage: in-memory or LibSQL
+  - PostgreSQL with pgvector planned for production
 - **OpenAPI Documentation**: Auto-generated API documentation with Zod schema validation
 - **Type-Safe Development**: Full TypeScript support with strict type checking
 - **Dependency Injection**: Effect Context and Layer for clean dependency management
@@ -40,6 +41,7 @@ DMS follows clean architecture principles with dependency inversion:
 **Backend:**
 - Hono 4.x for API server
 - Effect for functional programming and DI
+- LibSQL for persistent document metadata storage
 - Zod for schema validation and type inference
 - Pino for structured logging
 - Vitest for testing with full coverage
@@ -100,11 +102,14 @@ Current configuration:
 - `NODE_ENV`: Environment mode (development/production)
 - `PORT`: Server port (default: 3000)
 - `HOST`: Server host (default: 0.0.0.0)
+- `DATABASE_TYPE`: Database type (`memory` or `libsql`, default: memory)
+- `DATABASE_URL`: LibSQL database URL (file path or remote URL, e.g., `file:./data/dms.db`)
+- `DATABASE_AUTH_TOKEN`: LibSQL auth token for remote connections (optional)
 - `STORAGE_TYPE`: Storage backend (`filesystem` or `s3`, default: filesystem)
 - `STORAGE_PATH`: Base path for file storage (default: `./storage/documents`)
 
 Future configuration (for search features):
-- `DATABASE_URL`: PostgreSQL connection string
+- PostgreSQL connection string
 - `REDIS_URL`: Redis connection string
 - `OPENAI_API_KEY`: OpenAI API key for embeddings and chat
 
