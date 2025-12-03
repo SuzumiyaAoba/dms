@@ -7,14 +7,11 @@
  * @module services/DocumentService
  */
 
-import type { IStorageAdapter } from '@dms/core';
 import { Effect } from 'effect';
-import { inject, injectable } from 'tsyringe';
-import { TOKENS } from '@/config/container';
-import type { IDocumentRepository } from '@/repositories/DocumentRepository';
 import type { Document, UpdateDocument } from '@/types/document';
 import type { AppError } from '@/utils/effect-errors';
 import { logger } from '@/utils/logger';
+import { DocumentRepositoryService, StorageAdapter } from './context';
 
 /**
  * Document upload data
@@ -33,28 +30,30 @@ export interface UploadDocumentData {
  * Handles document operations including file upload, metadata management,
  * and coordination between storage and repository layers.
  */
-@injectable()
-export class DocumentService {
-  constructor(
-    @inject(TOKENS.IStorageAdapter) private readonly storageAdapter: IStorageAdapter,
-    @inject(TOKENS.IDocumentRepository) private readonly documentRepository: IDocumentRepository,
-  ) {}
-
+export namespace DocumentService {
   /**
    * List documents with pagination
    */
-  listDocuments(
+  export function listDocuments(
     page: number,
     limit: number,
-  ): Effect.Effect<{ items: Document[]; total: number }, AppError> {
-    return this.documentRepository.findAll(page, limit);
+  ): Effect.Effect<{ items: Document[]; total: number }, AppError, DocumentRepositoryService> {
+    return Effect.gen(function* () {
+      const repository = yield* DocumentRepositoryService;
+      return yield* repository.findAll(page, limit);
+    });
   }
 
   /**
    * Get a document by ID
    */
-  getDocumentById(id: string): Effect.Effect<Document, AppError> {
-    return this.documentRepository.findById(id);
+  export function getDocumentById(
+    id: string,
+  ): Effect.Effect<Document, AppError, DocumentRepositoryService> {
+    return Effect.gen(function* () {
+      const repository = yield* DocumentRepositoryService;
+      return yield* repository.findById(id);
+    });
   }
 
   /**
@@ -65,13 +64,17 @@ export class DocumentService {
    * 2. Creates document metadata in repository
    * 3. Returns the created document
    */
-  uploadDocument(data: UploadDocumentData): Effect.Effect<Document, AppError> {
-    return Effect.gen(this, function* () {
+  export function uploadDocument(
+    data: UploadDocumentData,
+  ): Effect.Effect<Document, AppError, StorageAdapter | DocumentRepositoryService> {
+    return Effect.gen(function* () {
+      const storageAdapter = yield* StorageAdapter;
+      const repository = yield* DocumentRepositoryService;
       const { file, title, description, tags, metadata } = data;
 
       // Upload file to storage
       const buffer = Buffer.from(yield* Effect.promise(() => file.arrayBuffer()));
-      const uploadResult = yield* this.storageAdapter.upload({
+      const uploadResult = yield* storageAdapter.upload({
         fileName: file.name,
         mimeType: file.type,
         buffer,
@@ -90,7 +93,7 @@ export class DocumentService {
       );
 
       // Create document metadata
-      const document = yield* this.documentRepository.create({
+      const document = yield* repository.create({
         title: title || file.name,
         description,
         tags,
@@ -110,9 +113,13 @@ export class DocumentService {
   /**
    * Update document metadata
    */
-  updateDocument(id: string, data: UpdateDocument): Effect.Effect<Document, AppError> {
-    return Effect.gen(this, function* () {
-      const updated = yield* this.documentRepository.update(id, data);
+  export function updateDocument(
+    id: string,
+    data: UpdateDocument,
+  ): Effect.Effect<Document, AppError, DocumentRepositoryService> {
+    return Effect.gen(function* () {
+      const repository = yield* DocumentRepositoryService;
+      const updated = yield* repository.update(id, data);
       logger.info({ documentId: id }, 'Document updated successfully');
       return updated;
     });
@@ -121,9 +128,12 @@ export class DocumentService {
   /**
    * Delete a document (soft delete)
    */
-  deleteDocument(id: string): Effect.Effect<void, AppError> {
-    return Effect.gen(this, function* () {
-      yield* this.documentRepository.delete(id);
+  export function deleteDocument(
+    id: string,
+  ): Effect.Effect<void, AppError, DocumentRepositoryService> {
+    return Effect.gen(function* () {
+      const repository = yield* DocumentRepositoryService;
+      yield* repository.delete(id);
       logger.info({ documentId: id }, 'Document deleted successfully');
     });
   }
@@ -131,7 +141,13 @@ export class DocumentService {
   /**
    * Get download URL for a document file
    */
-  getDownloadUrl(document: Document, expiresIn?: number): Effect.Effect<string, AppError> {
-    return this.storageAdapter.getDownloadUrl(document.fileUrl, expiresIn);
+  export function getDownloadUrl(
+    document: Document,
+    expiresIn?: number,
+  ): Effect.Effect<string, AppError, StorageAdapter> {
+    return Effect.gen(function* () {
+      const storageAdapter = yield* StorageAdapter;
+      return yield* storageAdapter.getDownloadUrl(document.fileUrl, expiresIn);
+    });
   }
 }

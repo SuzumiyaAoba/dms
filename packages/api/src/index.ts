@@ -8,26 +8,13 @@
  * @module index
  */
 
-import 'reflect-metadata';
 import { serve } from '@hono/node-server';
 import app from '@/app';
-import { setupContainer } from '@/config/container';
 import { env } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 const port = env.PORT;
 const host = env.HOST;
-
-// Initialize DI container
-async function initializeServer() {
-  try {
-    await setupContainer();
-    logger.info('DI container initialized successfully');
-  } catch (error) {
-    logger.error({ error }, 'Failed to initialize DI container');
-    process.exit(1);
-  }
-}
 
 // Log server startup information
 logger.info({
@@ -36,9 +23,6 @@ logger.info({
   host,
   msg: 'Starting DMS API Server',
 });
-
-// Initialize DI container before starting server
-await initializeServer();
 
 /**
  * Start the HTTP server
