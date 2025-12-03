@@ -7,10 +7,11 @@
  */
 
 import type { Layer } from 'effect';
+import type { DocumentRepositoryService, StorageAdapter } from '@/services/context';
 
 declare module 'hono' {
   interface ContextVariableMap {
-    appLayer: Layer.Layer<unknown, never, never>;
+    appLayer: Layer.Layer<DocumentRepositoryService | StorageAdapter, never, never>;
     requestId: string;
   }
 }

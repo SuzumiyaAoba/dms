@@ -11,7 +11,6 @@
 import type { IStorageAdapter } from '@dms/core';
 import { Context } from 'effect';
 import type { IDocumentRepository } from '@/repositories/DocumentRepository';
-import type { DocumentService } from './DocumentService';
 
 /**
  * Context tag for IStorageAdapter
@@ -31,14 +30,4 @@ export class StorageAdapter extends Context.Tag('StorageAdapter')<
 export class DocumentRepositoryService extends Context.Tag('DocumentRepository')<
   DocumentRepositoryService,
   IDocumentRepository
->() {}
-
-/**
- * Context tag for DocumentService
- *
- * Used to inject the document service
- */
-export class DocumentServiceTag extends Context.Tag('DocumentService')<
-  DocumentServiceTag,
-  DocumentService
 >() {}
