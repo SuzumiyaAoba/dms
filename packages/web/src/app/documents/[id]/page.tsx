@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DeleteButton } from '@/components/DeleteButton';
-import { apiClient } from '@/lib/api-client';
+import * as apiServer from '@/lib/api-server';
 import type { Document } from '@/types/api';
 
 interface DocumentDetailPageProps {
@@ -50,7 +50,7 @@ export default async function DocumentDetailPage({ params }: DocumentDetailPageP
   let error: string | null = null;
 
   try {
-    document = await apiClient.getDocument(id);
+    document = await apiServer.getDocument(id);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Unknown error';
   }

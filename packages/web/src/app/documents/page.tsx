@@ -1,6 +1,6 @@
 import { DocumentList } from '@/components/DocumentList';
 import { Pagination } from '@/components/Pagination';
-import { apiClient } from '@/lib/api-client';
+import * as apiServer from '@/lib/api-server';
 
 interface DocumentsPageProps {
   searchParams: Promise<{ page?: string }>;
@@ -11,11 +11,11 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   const page = Number.parseInt(params.page || '1', 10);
   const limit = 20;
 
-  let documents: Awaited<ReturnType<typeof apiClient.listDocuments>> | null = null;
+  let documents: Awaited<ReturnType<typeof apiServer.listDocuments>> | null = null;
   let error: string | null = null;
 
   try {
-    documents = await apiClient.listDocuments(page, limit);
+    documents = await apiServer.listDocuments(page, limit);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Unknown error';
   }
