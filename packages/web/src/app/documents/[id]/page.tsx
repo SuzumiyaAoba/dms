@@ -1,106 +1,58 @@
-'use client';
-
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ApiClientError, apiClient } from '@/lib/api-client';
+import { DeleteButton } from '@/components/DeleteButton';
+import { apiClient } from '@/lib/api-client';
 import type { Document } from '@/types/api';
 
-export default function DocumentDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id as string;
+interface DocumentDetailPageProps {
+  params: Promise<{ id: string }>;
+}
 
-  const [document, setDocument] = useState<Document | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
-  useEffect(() => {
-    const fetchDocument = async () => {
-      setLoading(true);
-      setError(null);
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-      try {
-        const doc = await apiClient.getDocument(id);
-        setDocument(doc);
-      } catch (err) {
-        if (err instanceof ApiClientError) {
-          setError(`${err.code}: ${err.message}`);
-        } else {
-          setError(err instanceof Error ? err.message : 'Unknown error');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDocument();
-  }, [id]);
-
-  const handleDelete = async () => {
-    if (!confirm('このドキュメントを削除してもよろしいですか？')) {
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      await apiClient.deleteDocument(id);
-      alert('ドキュメントを削除しました');
-      router.push('/documents');
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        alert(`削除に失敗しました: ${err.message}`);
-      } else {
-        alert(`削除に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      }
-    } finally {
-      setDeleting(false);
-    }
+function getStatusBadgeStyle(status: Document['status']) {
+  const baseStyle = {
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    display: 'inline-block',
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
+  switch (status) {
+    case 'ready':
+      return { ...baseStyle, background: '#10b981', color: 'white' };
+    case 'processing':
+      return { ...baseStyle, background: '#f59e0b', color: 'white' };
+    case 'error':
+      return { ...baseStyle, background: '#ef4444', color: 'white' };
+  }
+}
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+export default async function DocumentDetailPage({ params }: DocumentDetailPageProps) {
+  const { id } = await params;
 
-  const getStatusBadgeStyle = (status: Document['status']) => {
-    const baseStyle = {
-      padding: '0.5rem 1rem',
-      borderRadius: '0.375rem',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      display: 'inline-block',
-    };
+  let document: Document | null = null;
+  let error: string | null = null;
 
-    switch (status) {
-      case 'ready':
-        return { ...baseStyle, background: '#10b981', color: 'white' };
-      case 'processing':
-        return { ...baseStyle, background: '#f59e0b', color: 'white' };
-      case 'error':
-        return { ...baseStyle, background: '#ef4444', color: 'white' };
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', padding: '4rem', color: '#6b7280' }}>読み込み中...</div>
-      </div>
-    );
+  try {
+    document = await apiClient.getDocument(id);
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Unknown error';
   }
 
   if (error) {
@@ -313,22 +265,7 @@ export default function DocumentDetailPage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: '1rem' }}>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: deleting ? '#9ca3af' : '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.375rem',
-            fontWeight: '500',
-            cursor: deleting ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {deleting ? '削除中...' : 'ドキュメントを削除'}
-        </button>
+        <DeleteButton documentId={document.id} />
       </div>
     </div>
   );
