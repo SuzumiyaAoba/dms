@@ -34,7 +34,13 @@ export class ApiClientError extends Error {
 function getApiBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+    // Default to relative URL in production, localhost in development
+    if (typeof window !== 'undefined') {
+      // Client-side: use current origin
+      return `${window.location.origin}/api/v1`;
+    }
+    // Server-side build: use default localhost
+    return 'http://localhost:3000/api/v1';
   }
   return baseUrl;
 }

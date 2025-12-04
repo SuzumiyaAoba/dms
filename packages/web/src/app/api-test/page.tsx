@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 export default function ApiTestPage() {
   const [health, setHealth] = useState<{ status: string; timestamp: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
