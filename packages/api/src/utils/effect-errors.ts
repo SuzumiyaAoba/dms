@@ -65,6 +65,17 @@ export class RepositoryError extends Data.TaggedError('RepositoryError')<{
   readonly statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
+export class DatabaseError extends Data.TaggedError('DatabaseError')<{
+  operation: string;
+  cause?: unknown;
+}> {
+  readonly statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+
+  get message(): string {
+    return `Database operation '${this.operation}' failed`;
+  }
+}
+
 // Re-export storage errors from core
 export { StorageError, FileNotFoundError };
 
@@ -80,4 +91,5 @@ export type AppError =
   | RateLimitError
   | StorageError
   | FileNotFoundError
-  | RepositoryError;
+  | RepositoryError
+  | DatabaseError;

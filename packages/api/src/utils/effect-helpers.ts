@@ -37,12 +37,15 @@ export function errorResponse(c: Context, error: AppError) {
   // Get status code - fallback to 500 if not defined
   const statusCode = 'statusCode' in error ? error.statusCode : 500;
 
+  // Get error message
+  const message = 'message' in error ? error.message : 'An error occurred';
+
   return c.json(
     {
       success: false,
       error: {
         code: error._tag,
-        message: error.message,
+        message,
         details: 'details' in error ? error.details : undefined,
       },
       meta: {
