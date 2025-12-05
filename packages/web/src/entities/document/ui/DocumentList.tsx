@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { Document } from '@/types/api';
+import type { Document } from '@/shared/model';
 
 interface DocumentListProps {
   documents: Document[];

@@ -51,6 +51,9 @@ pnpm lint             # Lint all code
 pnpm check            # Format and lint together
 
 # Pre-commit hooks run automatically via Husky
+
+# Feature-Sliced Design validation (Web package)
+pnpm --filter @dms/web steiger    # Check FSD architecture
 ```
 
 ## Architecture Overview
@@ -159,6 +162,59 @@ Higher-level modules (domain) define interfaces, lower-level modules (infrastruc
 - Schema validation with Zod
 - Auto-generated API documentation at `/doc`
 
+### 6. Feature-Sliced Design (FSD) - Web Package
+The frontend follows Feature-Sliced Design architecture for better scalability and maintainability.
+
+**Directory Structure**:
+```
+packages/web/src/
+├── app/                    # Next.js App Router (pages, layouts)
+├── entities/               # Business entities
+│   └── document/
+│       ├── ui/            # Document-related UI components
+│       └── index.ts       # Public API
+├── features/              # User interactions/features
+│   └── document-delete/
+│       ├── ui/            # Feature-specific UI
+│       └── index.ts       # Public API
+├── shared/                # Shared resources
+│   ├── api/              # API clients (client & server)
+│   ├── model/            # Type definitions and schemas
+│   └── ui/               # Shared UI components
+└── widgets/               # Composite UI blocks (future)
+```
+
+**FSD Principles**:
+1. **Layers** (top to bottom dependency):
+   - `app` → Application initialization (Next.js pages/layouts)
+   - `features` → User interactions (delete, edit, create)
+   - `entities` → Business entities (Document, User)
+   - `shared` → Shared code (API, UI, utilities)
+
+2. **Public API** (`index.ts`):
+   - Every layer/slice/segment exports through `index.ts`
+   - Import only from public APIs: `@/entities/document`, `@/shared/api`
+   - NEVER import internal files: `@/entities/document/ui/DocumentList` ❌
+
+3. **Dependency Rules**:
+   - Higher layers can import from lower layers only
+   - Same layer: no cross-imports between slices
+   - Validated automatically with Steiger
+
+**Example Usage**:
+```typescript
+// ✅ CORRECT: Import from public API
+import { DocumentList } from '@/entities/document';
+import { apiClient } from '@/shared/api';
+import { Pagination } from '@/shared/ui';
+
+// ❌ WRONG: Direct import from internal structure
+import { DocumentList } from '@/entities/document/ui/DocumentList';
+```
+
+**Validation**:
+Run `pnpm --filter @dms/web steiger` to validate FSD structure.
+
 ## Code Style & Conventions
 
 ### Formatting (Biome)
@@ -168,6 +224,54 @@ Higher-level modules (domain) define interfaces, lower-level modules (infrastruc
 - Trailing commas: Always
 - Semicolons: Always
 - Arrow parens: Always
+
+### Type Safety: Parse, Don't Validate
+
+**CRITICAL**: Follow "Parse, don't validate" principle for all external data.
+
+- **NEVER use type assertions (`as`, `as unknown as`)** for external data
+- **ALWAYS use Zod schemas (v4+)** to parse and validate data from:
+  - API responses
+  - User input
+  - External services
+  - Database queries
+  - File uploads
+
+**Zod v4 Key Changes**:
+- `z.record()` now requires two arguments: `z.record(z.string(), z.unknown())`
+- `.datetime()` validation for ISO 8601 strings works the same way
+- Better TypeScript inference and error messages
+
+```typescript
+// ❌ BAD: Type assertion without validation
+const data = await response.json() as MyType;
+
+// ✅ GOOD: Parse with Zod schema
+const MySchema = z.object({ ... });
+const data = MySchema.parse(await response.json());
+```
+
+**Benefits**:
+- Runtime validation catches invalid data
+- Type safety guaranteed by parser
+- Self-documenting schemas
+- Better error messages
+
+**Example Implementation**:
+```typescript
+import { z } from 'zod';
+
+// Define schema
+const ApiResponseSchema = z.object({
+  success: z.boolean(),
+  data: DocumentSchema,
+});
+
+// Parse API response
+const response = await fetch(url);
+const parsed = ApiResponseSchema.parse(await response.json());
+// TypeScript now knows `parsed` is valid and typed correctly
+```
 
 ### Error Handling
 Use custom error classes from `packages/api/src/utils/errors.ts`:
@@ -256,7 +360,7 @@ pnpm --filter @dms/api test -- documents
 - **Runtime**: Node.js 20+
 - **Framework**: Hono (lightweight, fast)
 - **DI Container**: tsyringe with reflect-metadata
-- **Validation**: Zod
+- **Validation**: Zod v4 (type-safe schema validation)
 - **Logger**: Pino
 - **Testing**: Vitest
 - **Planned**: Drizzle ORM, PostgreSQL, pgvector, DuckDB, Redis
@@ -264,6 +368,7 @@ pnpm --filter @dms/api test -- documents
 ### Frontend
 - **Framework**: Next.js 14 with App Router
 - **React**: 19+
+- **Validation**: Zod v4 (shared with backend)
 
 ### Code Quality
 - **Formatter/Linter**: Biome (replaces ESLint + Prettier)

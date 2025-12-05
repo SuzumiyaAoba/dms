@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { DeleteButton } from '@/components/DeleteButton';
-import { apiClient } from '@/lib/api-client';
-import type { Document } from '@/types/api';
+import { DeleteButton } from '@/features/document-delete';
+import { apiServer } from '@/shared/api';
+import type { Document } from '@/shared/model';
 
 interface DocumentDetailPageProps {
   params: Promise<{ id: string }>;
@@ -50,7 +50,7 @@ export default async function DocumentDetailPage({ params }: DocumentDetailPageP
   let error: string | null = null;
 
   try {
-    document = await apiClient.getDocument(id);
+    document = await apiServer.getDocument(id);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Unknown error';
   }
