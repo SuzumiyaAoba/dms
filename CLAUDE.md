@@ -402,15 +402,27 @@ pnpm --filter @dms/api test -- documents
 
 ## Environment Setup
 
+### API Server (packages/api)
 Key environment variables (see `packages/api/.env.example`):
 - `NODE_ENV`: Environment mode (development/production)
-- `PORT`: Server port (default: 3000)
+- `PORT`: Server port (default: **3000**)
 - `HOST`: Server host (default: 0.0.0.0)
 - `STORAGE_TYPE`: Storage backend (`filesystem` or `s3`, default: filesystem)
 - `STORAGE_PATH`: Base path for file storage (default: `./storage/documents`)
-- `DATABASE_URL`: PostgreSQL connection string (when implemented)
-- `REDIS_URL`: Redis connection string (when implemented)
+- `DATABASE_TYPE`: Database type (`memory` or `libsql`, default: memory)
+- `DATABASE_URL`: LibSQL database URL (when using libsql)
+- `DATABASE_AUTH_TOKEN`: LibSQL auth token (when using remote libsql)
 - `OPENAI_API_KEY`: For embeddings and chat (when implemented)
+
+### Web Frontend (packages/web)
+Key environment variables (see `packages/web/.env.local.example`):
+- Web server runs on port **3001** (configured in package.json)
+- `NEXT_PUBLIC_API_URL`: Client-side API URL (default: http://localhost:3000/api/v1)
+- `API_URL`: Server-side API URL (default: http://localhost:3000/api/v1)
+
+**Port Configuration**:
+- API Server: **3000** (configured in .env)
+- Web Frontend: **3001** (configured in package.json scripts with `-p 3001`)
 
 ## Development Workflow
 
