@@ -424,8 +424,9 @@ Key environment variables (see `packages/api/.env.example`):
 ### Web Frontend (packages/web)
 Key environment variables (see `packages/web/.env.local.example`):
 - Web server runs on port **3001** (configured in package.json)
-- `NEXT_PUBLIC_API_URL`: Client-side API URL (default: http://localhost:3000/api/v1)
-- `API_URL`: Server-side API URL (default: http://localhost:3000/api/v1)
+- `NEXT_PUBLIC_API_URL`: Client-side API URL (default: http://localhost:3000)
+  - Note: API does not use `/api/v1` prefix yet (routes mounted at `/`)
+- `API_URL`: Server-side API URL (default: http://localhost:3000)
 
 **Port Configuration**:
 - API Server: **3000** (configured in .env)
