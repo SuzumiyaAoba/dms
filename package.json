@@ -5,6 +5,9 @@
   "description": "Document Management System",
   "scripts": {
     "prepare": "husky",
+    "dev": "run-p dev:api dev:web",
+    "dev:api": "pnpm --filter @dms/api dev",
+    "dev:web": "pnpm --filter @dms/web dev",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --write ."
@@ -16,7 +19,8 @@
     "@biomejs/biome": "^2.3.8",
     "@total-typescript/ts-reset": "^0.6.1",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7"
+    "lint-staged": "^16.2.7",
+    "npm-run-all2": "^7.0.2"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,md}": [

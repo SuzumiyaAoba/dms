@@ -16,10 +16,17 @@ DMS (Document Management System) is a modern document management system with AI-
 # Install dependencies
 pnpm install
 
-# Start development servers
-pnpm --filter @dms/api dev     # API server (http://localhost:3000)
-pnpm --filter @dms/web dev      # Web frontend (http://localhost:3001)
+# Start all development servers (recommended)
+pnpm dev                        # API + Web in parallel
+
+# Or start individual servers
+pnpm dev:api                    # API server only (http://localhost:3000)
+pnpm dev:web                    # Web frontend only (http://localhost:3001)
 pnpm --filter @dms/core dev     # Watch and build core package
+
+# Legacy commands (still work)
+pnpm --filter @dms/api dev      # API server (http://localhost:3000)
+pnpm --filter @dms/web dev      # Web frontend (http://localhost:3001)
 ```
 
 ### Testing
