@@ -230,12 +230,17 @@ Run `pnpm --filter @dms/web steiger` to validate FSD structure.
 **CRITICAL**: Follow "Parse, don't validate" principle for all external data.
 
 - **NEVER use type assertions (`as`, `as unknown as`)** for external data
-- **ALWAYS use Zod schemas** to parse and validate data from:
+- **ALWAYS use Zod schemas (v4+)** to parse and validate data from:
   - API responses
   - User input
   - External services
   - Database queries
   - File uploads
+
+**Zod v4 Key Changes**:
+- `z.record()` now requires two arguments: `z.record(z.string(), z.unknown())`
+- `.datetime()` validation for ISO 8601 strings works the same way
+- Better TypeScript inference and error messages
 
 ```typescript
 // ❌ BAD: Type assertion without validation
@@ -355,7 +360,7 @@ pnpm --filter @dms/api test -- documents
 - **Runtime**: Node.js 20+
 - **Framework**: Hono (lightweight, fast)
 - **DI Container**: tsyringe with reflect-metadata
-- **Validation**: Zod
+- **Validation**: Zod v4 (type-safe schema validation)
 - **Logger**: Pino
 - **Testing**: Vitest
 - **Planned**: Drizzle ORM, PostgreSQL, pgvector, DuckDB, Redis
@@ -363,6 +368,7 @@ pnpm --filter @dms/api test -- documents
 ### Frontend
 - **Framework**: Next.js 14 with App Router
 - **React**: 19+
+- **Validation**: Zod v4 (shared with backend)
 
 ### Code Quality
 - **Formatter/Linter**: Biome (replaces ESLint + Prettier)

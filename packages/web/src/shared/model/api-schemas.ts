@@ -19,7 +19,7 @@ export const DocumentSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   tags: z.array(z.string()),
-  metadata: z.record(z.unknown()),
+  metadata: z.record(z.string(), z.unknown()),
   fileUrl: z.string(),
   fileName: z.string(),
   fileSize: z.number().int().positive(),
