@@ -1,0 +1,4 @@
+{
+  "$schema": "https://feature-sliced.design/steiger.schema.json",
+  "plugins": ["@feature-sliced/steiger-plugin"]
+}

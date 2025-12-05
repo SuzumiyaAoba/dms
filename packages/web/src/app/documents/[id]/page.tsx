@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { DeleteButton } from '@/components/DeleteButton';
-import * as apiServer from '@/lib/api-server';
-import type { Document } from '@/types/api';
+import { DeleteButton } from '@/features/document-delete';
+import { apiServer } from '@/shared/api';
+import type { Document } from '@/shared/model';
 
 interface DocumentDetailPageProps {
   params: Promise<{ id: string }>;

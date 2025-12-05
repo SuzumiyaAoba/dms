@@ -1,6 +1,6 @@
-import { DocumentList } from '@/components/DocumentList';
-import { Pagination } from '@/components/Pagination';
-import * as apiServer from '@/lib/api-server';
+import { DocumentList } from '@/entities/document';
+import { apiServer } from '@/shared/api';
+import { Pagination } from '@/shared/ui';
 
 interface DocumentsPageProps {
   searchParams: Promise<{ page?: string }>;

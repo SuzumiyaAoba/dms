@@ -10,16 +10,19 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "steiger": "steiger src"
   },
   "dependencies": {
     "@dms/core": "workspace:*",
     "next": "^16.0.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
+    "@feature-sliced/steiger-plugin": "^0.5.7",
     "@next/eslint-plugin-next": "^16.0.5",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
@@ -28,6 +31,7 @@
     "@typescript-eslint/parser": "^8.48.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.5",
+    "steiger": "^0.5.11",
     "typescript": "^5.9.3"
   }
 }

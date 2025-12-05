@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiClientError, apiClient } from '@/lib/api-client';
+import { ApiClientError, apiClient } from '@/shared/api';
 
 interface DeleteButtonProps {
   documentId: string;
