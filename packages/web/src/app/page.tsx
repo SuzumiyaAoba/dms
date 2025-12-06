@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
-import { apiClient } from '@/shared/api/api-client';
+import { apiClient } from '@/shared/api';
 import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
 import type { Document } from '@/shared/model/document';
 import { DirectoryTree } from '@/widgets/directory-tree';

@@ -2,7 +2,7 @@
 
 import { FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { apiClient } from '@/shared/api/api-client';
+import { apiClient } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import type { Document } from '@/shared/model/document';
 

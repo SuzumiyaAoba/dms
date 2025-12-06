@@ -1,0 +1,11 @@
+{
+  "plugins": ["@feature-sliced/steiger-plugin"],
+  "ruleOverrides": {
+    "fsd/forbidden-imports": "error",
+    "fsd/no-cross-imports": "error",
+    "fsd/no-public-api-sidestep": "error",
+    "fsd/public-api": "error",
+    "fsd/segments-by-purpose": "error",
+    "fsd/shared-lib-groups": "warn"
+  }
+}
