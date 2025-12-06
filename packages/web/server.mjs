@@ -80,7 +80,7 @@ createServer(async (req, res) => {
     res.statusCode = 500;
     res.end('internal server error');
   }
-}).listen(port, () => {
+}).listen(port, hostname, () => {
   console.log(`[Web Server] Ready on http://${hostname}:${port}`);
   console.log(`[Web Server] Environment: ${dev ? 'development' : 'production'}`);
 });
