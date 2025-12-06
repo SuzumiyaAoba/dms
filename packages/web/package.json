@@ -5,9 +5,9 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "node server.mjs",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "NODE_ENV=production node server.mjs",
     "lint": "eslint .",
     "format": "biome format --write .",
     "check": "biome check --write .",

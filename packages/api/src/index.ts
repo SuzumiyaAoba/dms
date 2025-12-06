@@ -8,38 +8,39 @@
  * @module index
  */
 
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { serve } from '@hono/node-server';
+import { getPort } from 'get-port-please';
 import app from '@/app';
 import { env } from '@/config/env';
 import { logger } from '@/utils/logger';
 
-const port = env.PORT;
 const host = env.HOST;
 
 // Log server startup information
 logger.info({
   env: env.NODE_ENV,
-  port,
   host,
   msg: 'Starting DMS API Server',
 });
 
 /**
- * Start the HTTP server
+ * Start the HTTP server with dynamic port allocation
  *
- * Binds the server to the configured host and port, then logs the
- * server address once it's ready to accept connections.
+ * Uses get-port-please to find an available port, preferring the configured
+ * PORT from environment but falling back to an available port if occupied.
+ * Writes the allocated port to a .env.port file for other processes to consume.
  *
  * Configuration is loaded from environment variables:
  * - HOST: Server hostname (default: 0.0.0.0)
- * - PORT: Server port (default: 3000)
+ * - PORT: Preferred server port (default: 3000)
  *
  * @example
  * Server startup log output:
  * ```
  * INFO: Starting DMS API Server
  *   env: "development"
- *   port: 3000
  *   host: "0.0.0.0"
  *
  * INFO: Server is running
@@ -47,20 +48,35 @@ logger.info({
  *   address: "http://0.0.0.0:3000"
  * ```
  */
-serve(
-  {
-    fetch: app.fetch,
+(async () => {
+  // Get available port, preferring env.PORT
+  const port = await getPort({ port: env.PORT, host });
+
+  // Write port to .env.port file for web server to read
+  const envPortPath = join(process.cwd(), '.env.port');
+  writeFileSync(envPortPath, `API_PORT=${port}\n`);
+
+  logger.info({
     port,
-    hostname: host,
-  },
-  (info) => {
-    logger.info({
-      port: info.port,
-      address: `http://${host}:${info.port}`,
-      msg: 'Server is running',
-    });
-  },
-);
+    preferredPort: env.PORT,
+    msg: 'Port allocated',
+  });
+
+  serve(
+    {
+      fetch: app.fetch,
+      port,
+      hostname: host,
+    },
+    (info) => {
+      logger.info({
+        port: info.port,
+        address: `http://${host}:${info.port}`,
+        msg: 'Server is running',
+      });
+    },
+  );
+})();
 
 /**
  * SIGINT signal handler

@@ -39,14 +39,13 @@ export class ApiClientError extends Error {
 function getApiBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
-    // Default to localhost without /api/v1 prefix
-    // Note: API does not use versioning prefix yet
+    // Default to localhost with /api/v1 prefix
     if (typeof window !== 'undefined') {
-      // Client-side: use current origin
-      return window.location.origin;
+      // Client-side: use current origin with API prefix
+      return `${window.location.origin}/api/v1`;
     }
-    // Server-side build: use default localhost
-    return 'http://localhost:3000';
+    // Server-side build: use default localhost with API prefix
+    return 'http://localhost:3000/api/v1';
   }
   return baseUrl;
 }
