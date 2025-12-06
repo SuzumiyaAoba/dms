@@ -17,16 +17,20 @@ DMS (Document Management System) is a modern document management system with AI-
 pnpm install
 
 # Start all development servers (recommended)
-pnpm dev                        # API + Web in parallel
+pnpm dev                        # API + Web in parallel with auto port allocation
 
 # Or start individual servers
-pnpm dev:api                    # API server only (http://localhost:3000)
-pnpm dev:web                    # Web frontend only (http://localhost:3001)
+pnpm dev:api                    # API server only (auto-allocated port, prefers 3000)
+pnpm dev:web                    # Web frontend only (auto-allocated port, prefers 3001)
 pnpm --filter @dms/core dev     # Watch and build core package
 
-# Legacy commands (still work)
-pnpm --filter @dms/api dev      # API server (http://localhost:3000)
-pnpm --filter @dms/web dev      # Web frontend (http://localhost:3001)
+# Direct commands (also work)
+pnpm --filter @dms/api dev      # API server with dynamic port
+pnpm --filter @dms/web dev      # Web frontend with dynamic port
+
+# Note: Ports are automatically allocated. Check console output for actual ports.
+# API writes port to packages/api/.env.port
+# Web reads API port from that file and configures URLs automatically
 ```
 
 ### Testing
@@ -409,10 +413,35 @@ pnpm --filter @dms/api test -- documents
 
 ## Environment Setup
 
+### Dynamic Port Allocation
+
+Both API and Web servers use **get-port-please** for automatic port allocation to prevent conflicts:
+
+**How it works**:
+1. **API Server** (`packages/api/src/index.ts`):
+   - Prefers port specified in `PORT` env variable (default: 3000)
+   - If occupied, automatically finds next available port
+   - Writes allocated port to `packages/api/.env.port` file
+   - Format: `API_PORT=<port>`
+
+2. **Web Server** (`packages/web/server.mjs`):
+   - Waits for API server's `.env.port` file (max 10 seconds)
+   - Reads API port and sets `NEXT_PUBLIC_API_URL` and `API_URL` dynamically
+   - Prefers port 3001 for web server, fallback to next available
+   - Uses custom Next.js server for port allocation
+
+**Benefits**:
+- No port conflicts even if default ports are occupied
+- Automatic fallback to available ports
+- Web server always knows correct API URL
+- Smooth development experience with `pnpm dev`
+
+**Note**: `.env.port` files are runtime-generated and git-ignored
+
 ### API Server (packages/api)
 Key environment variables (see `packages/api/.env.example`):
 - `NODE_ENV`: Environment mode (development/production)
-- `PORT`: Server port (default: **3000**)
+- `PORT`: **Preferred** server port (default: 3000, auto-allocates if occupied)
 - `HOST`: Server host (default: 0.0.0.0)
 - `STORAGE_TYPE`: Storage backend (`filesystem` or `s3`, default: filesystem)
 - `STORAGE_PATH`: Base path for file storage (default: `./storage/documents`)
@@ -422,14 +451,13 @@ Key environment variables (see `packages/api/.env.example`):
 - `OPENAI_API_KEY`: For embeddings and chat (when implemented)
 
 ### Web Frontend (packages/web)
-Key environment variables (see `packages/web/.env.local.example`):
-- Web server runs on port **3001** (configured in package.json)
-- `NEXT_PUBLIC_API_URL`: Client-side API URL (default: http://localhost:3000/api/v1)
-- `API_URL`: Server-side API URL (default: http://localhost:3000/api/v1)
+- **No manual configuration needed** - API URL is set automatically from API's `.env.port`
+- Web server prefers port **3001**, auto-allocates if occupied
+- Uses custom server (`server.mjs`) for dynamic configuration
 
-**Port Configuration**:
-- API Server: **3000** (configured in .env)
-- Web Frontend: **3001** (configured in package.json scripts with `-p 3001`)
+For reference, see `packages/web/.env.local.example`:
+- `NEXT_PUBLIC_API_URL`: Auto-set by server.mjs (fallback: http://localhost:3000/api/v1)
+- `API_URL`: Auto-set by server.mjs (fallback: http://localhost:3000/api/v1)
 
 ## Development Workflow
 
