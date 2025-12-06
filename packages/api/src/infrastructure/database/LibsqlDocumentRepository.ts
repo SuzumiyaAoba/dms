@@ -323,7 +323,7 @@ export class LibsqlDocumentRepository implements IDocumentRepository {
   ): Effect.Effect<Document, NotFoundError | RepositoryError> {
     return Effect.gen(this, function* () {
       // First, check if document exists
-      const existing = yield* this.findById(id);
+      const _existing = yield* this.findById(id);
 
       const now = new Date().toISOString();
       const updates: string[] = [];

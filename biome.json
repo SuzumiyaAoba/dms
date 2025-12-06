@@ -35,7 +35,8 @@
       "!**/out",
       "!**/pnpm-lock.yaml",
       "!**/*.config.js",
-      "!**/*.config.ts"
+      "!**/*.config.ts",
+      "!**/*.css"
     ]
   }
 }

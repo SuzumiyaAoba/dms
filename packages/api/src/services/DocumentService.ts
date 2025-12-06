@@ -150,4 +150,91 @@ export namespace DocumentService {
       return yield* storageAdapter.getDownloadUrl(document.fileUrl, expiresIn);
     });
   }
+
+  /**
+   * Get file content from disk
+   */
+  export function getFileContent(fileUrl: string): Effect.Effect<string, AppError, StorageAdapter> {
+    return Effect.gen(function* () {
+      const storageAdapter = yield* StorageAdapter;
+
+      // Check if storage adapter supports reading file content
+      if (!('readFile' in storageAdapter)) {
+        logger.warn('Storage adapter does not support reading file content');
+        return '';
+      }
+
+      const content = yield* Effect.promise(() =>
+        (storageAdapter as unknown as { readFile: (path: string) => Promise<string> }).readFile(
+          fileUrl,
+        ),
+      );
+
+      return content;
+    });
+  }
+
+  /**
+   * Import existing files from storage
+   *
+   * Scans the storage directory and creates document entries for files
+   * that are not yet in the repository.
+   */
+  export function importExistingFiles(): Effect.Effect<
+    number,
+    AppError,
+    StorageAdapter | DocumentRepositoryService
+  > {
+    return Effect.gen(function* () {
+      const storageAdapter = yield* StorageAdapter;
+      const repository = yield* DocumentRepositoryService;
+
+      // Check if storage adapter supports scanning
+      if (!('scanExistingFiles' in storageAdapter)) {
+        logger.warn('Storage adapter does not support scanning existing files');
+        return 0;
+      }
+
+      const files = yield* Effect.promise(() =>
+        (
+          storageAdapter as unknown as {
+            scanExistingFiles: () => Promise<
+              Array<{
+                fileName: string;
+                filePath: string;
+                fileSize: number;
+                mimeType: string;
+                modifiedAt: Date;
+              }>
+            >;
+          }
+        ).scanExistingFiles(),
+      );
+
+      let importedCount = 0;
+
+      for (const file of files) {
+        // Check if document already exists with this file path
+        const existingDocs = yield* repository.findAll(1, 1000);
+        const exists = existingDocs.items.some((doc) => doc.fileUrl === file.filePath);
+
+        if (!exists) {
+          yield* repository.create({
+            title: file.fileName,
+            description: null,
+            tags: [],
+            metadata: {},
+            fileUrl: file.filePath,
+            fileName: file.fileName,
+            fileSize: file.fileSize,
+            mimeType: file.mimeType,
+          });
+          importedCount++;
+        }
+      }
+
+      logger.info({ importedCount, totalFiles: files.length }, 'Imported existing files');
+      return importedCount;
+    });
+  }
 }

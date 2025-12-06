@@ -10,6 +10,7 @@
 
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
+import { Effect } from 'effect';
 import { logger as honoLogger } from 'hono/logger';
 import { makeAppLayer } from '@/config/layers';
 import { cors } from '@/middleware/cors';
@@ -17,7 +18,9 @@ import { errorHandler } from '@/middleware/errorHandler';
 import { loggerMiddleware } from '@/middleware/logger';
 import { notFound } from '@/middleware/notFound';
 import routes from '@/routes';
+import { DocumentService } from '@/services/DocumentService';
 import '@/types/hono';
+import { logger } from '@/utils/logger';
 
 /**
  * Main Hono application instance with OpenAPI support
@@ -103,5 +106,16 @@ app.get(
 
 // 404 handler
 app.notFound(notFound);
+
+// Initialize by importing existing files
+(async () => {
+  try {
+    const importEffect = DocumentService.importExistingFiles();
+    const result = await Effect.runPromise(importEffect.pipe(Effect.provide(appLayer)));
+    logger.info({ importedCount: result }, 'Existing files imported');
+  } catch (error) {
+    logger.error({ error }, 'Failed to import existing files');
+  }
+})();
 
 export default app;

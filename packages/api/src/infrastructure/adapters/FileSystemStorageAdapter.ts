@@ -174,6 +174,99 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
   }
 
   /**
+   * Read file content as text
+   *
+   * @param filePath - Absolute path to the file
+   * @returns File content as string
+   */
+  async readFile(filePath: string): Promise<string> {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      logger.info({ path: filePath, size: content.length }, 'File content read from file system');
+      return content;
+    } catch (error) {
+      logger.error({ error, path: filePath }, 'Failed to read file content');
+      throw new Error(
+        `Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Scan existing files in the base path
+   *
+   * Returns all files found in the storage directory.
+   */
+  async scanExistingFiles(): Promise<
+    Array<{
+      fileName: string;
+      filePath: string;
+      fileSize: number;
+      mimeType: string;
+      modifiedAt: Date;
+    }>
+  > {
+    const files: Array<{
+      fileName: string;
+      filePath: string;
+      fileSize: number;
+      mimeType: string;
+      modifiedAt: Date;
+    }> = [];
+
+    try {
+      // Recursively scan all files in basePath
+      const scanDirectory = async (dir: string): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+
+          if (entry.isDirectory()) {
+            // Skip metadata directories and hidden directories
+            if (!entry.name.startsWith('.')) {
+              await scanDirectory(fullPath);
+            }
+          } else if (entry.isFile()) {
+            // Skip metadata files and hidden files
+            if (!entry.name.endsWith('.meta.json') && !entry.name.startsWith('.')) {
+              const stats = await fs.stat(fullPath);
+              const ext = path.extname(entry.name).toLowerCase();
+
+              // Detect mime type based on extension
+              let mimeType = 'application/octet-stream';
+              if (ext === '.org') {
+                mimeType = 'text/org';
+              } else if (ext === '.md') {
+                mimeType = 'text/markdown';
+              } else if (ext === '.txt') {
+                mimeType = 'text/plain';
+              } else if (ext === '.pdf') {
+                mimeType = 'application/pdf';
+              }
+
+              files.push({
+                fileName: entry.name,
+                filePath: fullPath,
+                fileSize: stats.size,
+                mimeType,
+                modifiedAt: stats.mtime,
+              });
+            }
+          }
+        }
+      };
+
+      await scanDirectory(this.basePath);
+      logger.info({ count: files.length, basePath: this.basePath }, 'Scanned existing files');
+      return files;
+    } catch (error) {
+      logger.error({ error, basePath: this.basePath }, 'Failed to scan existing files');
+      return [];
+    }
+  }
+
+  /**
    * Generate a unique ID for file naming
    *
    * @returns 16-character hex string

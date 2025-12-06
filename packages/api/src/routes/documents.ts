@@ -9,6 +9,7 @@
 
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { Effect } from 'effect';
 import { HTTP_STATUS } from '@/config/constants';
 import { DocumentService } from '@/services/DocumentService';
 import { DocumentSchema, UpdateDocumentSchema } from '@/types/document';
@@ -344,6 +345,71 @@ documents.openapi(deleteDocumentRoute, async (c) => {
 
   return runEffectHandler(c, DocumentService.deleteDocument(id), () =>
     successResponse(c, { message: 'Document deleted successfully' }),
+  );
+});
+
+/**
+ * GET /documents/:id/content - Get document file content
+ */
+const getDocumentContentRoute = createRoute({
+  method: 'get',
+  path: '/{id}/content',
+  tags: ['Documents'],
+  summary: 'Get document file content',
+  description: 'Retrieve the file content of a specific document as plain text.',
+  request: {
+    params: idSchema,
+  },
+  responses: {
+    200: {
+      description: 'Document content retrieved',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            data: z.object({
+              content: z.string(),
+            }),
+            meta: z.object({
+              timestamp: z.string().datetime(),
+              requestId: z.string().optional(),
+            }),
+          }),
+        },
+      },
+    },
+    404: {
+      description: 'Document not found',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: false }),
+            error: z.object({
+              code: z.string().openapi({ example: 'NOT_FOUND' }),
+              message: z.string().openapi({ example: 'Document not found' }),
+            }),
+            meta: z.object({
+              timestamp: z.string().datetime(),
+              requestId: z.string().optional(),
+            }),
+          }),
+        },
+      },
+    },
+  },
+});
+
+documents.openapi(getDocumentContentRoute, async (c) => {
+  const { id } = c.req.valid('param');
+
+  return runEffectHandler(
+    c,
+    Effect.gen(function* () {
+      const document = yield* DocumentService.getDocumentById(id);
+      const content = yield* DocumentService.getFileContent(document.fileUrl);
+      return { content };
+    }),
+    (data) => successResponse(c, data),
   );
 });
 

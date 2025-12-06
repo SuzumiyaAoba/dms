@@ -1,48 +1,60 @@
-import Link from 'next/link';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { DocumentViewer } from '@/entities/document';
+import { apiClient } from '@/shared/api/api-client';
+import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
+import type { Document } from '@/shared/model/document';
+import { DirectoryTree } from '@/widgets/directory-tree';
+import { DocumentLayout } from '@/widgets/document-layout';
 
 export default function Home() {
-  return (
-    <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-        DMS - Document Management System
-      </h1>
-      <p style={{ color: '#6b7280', marginBottom: '2rem', fontSize: '1.125rem' }}>
-        ドキュメント管理システムへようこそ
-      </p>
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [_documents, setDocuments] = useState<Document[]>([]);
+  const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <Link
-          href="/documents"
-          style={{
-            display: 'block',
-            padding: '1rem 1.5rem',
-            background: '#3b82f6',
-            color: 'white',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '500',
-            textAlign: 'center',
-          }}
-        >
-          ドキュメント一覧を見る
-        </Link>
+  // Load documents on mount
+  useEffect(() => {
+    apiClient
+      .listDocuments(1, 100)
+      .then((response) => {
+        const docs = response.items;
+        setDocuments(docs);
+        setTreeNodes(buildDirectoryTree(docs));
+      })
+      .catch((error) => {
+        console.error('Failed to load documents:', error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
-        <Link
-          href="/api-test"
-          style={{
-            display: 'block',
-            padding: '1rem 1.5rem',
-            background: '#6b7280',
-            color: 'white',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '500',
-            textAlign: 'center',
-          }}
-        >
-          API接続テスト
-        </Link>
+  const handleNodeClick = (node: TreeNode) => {
+    if (node.type === 'file' && node.document) {
+      setSelectedDocument(node.document);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">読み込み中...</p>
       </div>
-    </main>
+    );
+  }
+
+  return (
+    <DocumentLayout
+      sidebar={
+        <DirectoryTree
+          nodes={treeNodes}
+          onNodeClick={handleNodeClick}
+          selectedNodeId={selectedDocument?.fileUrl}
+        />
+      }
+      content={<DocumentViewer document={selectedDocument} />}
+    />
   );
 }

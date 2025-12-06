@@ -6,12 +6,11 @@
  * the API_URL environment variable.
  */
 
-import { getPort } from 'get-port-please';
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parse } from 'node:url';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, parse } from 'node:url';
+import { getPort } from 'get-port-please';
 import next from 'next';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -32,7 +31,7 @@ let waited = 0;
 
 while (!existsSync(apiEnvPortPath) && waited < maxWaitTime) {
   console.log(`[Web Server] Waiting for API server to start... (${waited}ms)`);
-  await new Promise(resolve => setTimeout(resolve, checkInterval));
+  await new Promise((resolve) => setTimeout(resolve, checkInterval));
   waited += checkInterval;
 }
 
@@ -44,7 +43,7 @@ if (existsSync(apiEnvPortPath)) {
       apiPort = Number.parseInt(match[1], 10);
       console.log(`[Web Server] Read API port from .env.port: ${apiPort}`);
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn('[Web Server] Failed to read API port from .env.port, using default 3000');
   }
 } else {

@@ -6,6 +6,7 @@
  * @module config/layers
  */
 
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { Layer } from 'effect';
 import { env } from '@/config/env';
@@ -13,7 +14,6 @@ import { makeFileSystemStorageLayer } from '@/infrastructure/adapters/FileSystem
 import { LibsqlDocumentRepositoryLayer } from '@/infrastructure/database/LibsqlDocumentRepository';
 import { LibsqlClientLayer } from '@/infrastructure/database/libsql';
 import { InMemoryDocumentRepositoryLayer } from '@/repositories/DocumentRepository';
-import type { DocumentRepositoryService, StorageAdapter } from '@/services/context';
 import { logger } from '@/utils/logger';
 
 /**
@@ -25,7 +25,15 @@ import { logger } from '@/utils/logger';
 export function makeAppLayer() {
   // Get configuration from environment
   const storageType = process.env.STORAGE_TYPE || 'filesystem';
-  const storagePath = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage', 'documents');
+  let storagePath = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage', 'documents');
+
+  // Expand ~ to home directory
+  if (storagePath.startsWith('~/')) {
+    storagePath = path.join(os.homedir(), storagePath.slice(2));
+  } else if (storagePath === '~') {
+    storagePath = os.homedir();
+  }
+
   const databaseType = env.DATABASE_TYPE;
 
   // Create storage layer based on configuration

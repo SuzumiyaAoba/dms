@@ -5,6 +5,7 @@
  * Following "Parse, don't validate" principle with Zod
  */
 
+import { z } from 'zod';
 import type {
   CreateDocumentInput,
   Document,
@@ -110,10 +111,17 @@ export class ApiClient {
 
     const json = await response.json();
 
+    // Debug log
+    console.log('API Response:', json);
+    console.log('Response type:', typeof json);
+    console.log('Response success:', json?.success, typeof json?.success);
+
     // Try to parse as error response first
     const errorResult = ApiErrorResponseSchema.safeParse(json);
+    console.log('Error parse result:', errorResult);
     if (errorResult.success) {
       const errorData = errorResult.data;
+      console.error('API Error:', errorData.error);
       throw new ApiClientError(
         errorData.error.message,
         errorData.error.code,
@@ -122,8 +130,13 @@ export class ApiClient {
     }
 
     // Parse as paginated response with Zod
-    const parsed = PaginatedApiResponseSchema(DocumentSchema).parse(json);
-    return parsed.data;
+    const parseResult = PaginatedApiResponseSchema(DocumentSchema).safeParse(json);
+    if (!parseResult.success) {
+      console.error('Schema validation failed:', parseResult.error);
+      throw new Error(`Failed to parse API response: ${parseResult.error.message}`);
+    }
+
+    return parseResult.data.data;
   }
 
   /**
@@ -207,11 +220,52 @@ export class ApiClient {
   }
 
   /**
-   * Get health status
+   * Get document file content
    * Following "Parse, don't validate" - uses Zod to parse response
    */
+  async getDocumentContent(id: string): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/documents/${id}/content`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const json = await response.json();
+
+    // Try to parse as error response first
+    const errorResult = ApiErrorResponseSchema.safeParse(json);
+    if (errorResult.success) {
+      const errorData = errorResult.data;
+      throw new ApiClientError(
+        errorData.error.message,
+        errorData.error.code,
+        errorData.error.details,
+      );
+    }
+
+    // Parse as success response
+    const ContentSchema = z.object({ content: z.string() });
+    const parseResult = ApiSuccessResponseSchema(ContentSchema).safeParse(json);
+    if (!parseResult.success) {
+      throw new Error(`Failed to parse API response: ${parseResult.error.message}`);
+    }
+
+    return parseResult.data.data.content;
+  }
+
+  /**
+   * Get health status
+   * Following "Parse, don't validate" - uses Zod to parse response
+   *
+   * Note: Health endpoint is mounted at /health (without API prefix)
+   */
   async getHealth(): Promise<{ status: string; timestamp: string }> {
-    const response = await fetch(`${this.baseUrl}/health`, {
+    // Health endpoint is at /health, not /api/v1/health
+    // Remove /api/v1 suffix from baseUrl if present
+    const healthUrl = this.baseUrl.replace(/\/api\/v1$/, '/health');
+
+    const response = await fetch(healthUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

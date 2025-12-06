@@ -55,7 +55,7 @@ export const ResponseMetaSchema = z.object({
  */
 export const ApiSuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   z.object({
-    success: z.literal(true),
+    success: z.boolean(),
     data: dataSchema,
     meta: ResponseMetaSchema,
   });
@@ -65,7 +65,7 @@ export const ApiSuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) 
  */
 export const PaginatedApiResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
-    success: z.literal(true),
+    success: z.boolean(),
     data: z.object({
       items: z.array(itemSchema),
       pagination: PaginationSchema,
@@ -77,7 +77,7 @@ export const PaginatedApiResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T
  * Error response schema
  */
 export const ApiErrorResponseSchema = z.object({
-  success: z.literal(false),
+  success: z.boolean(),
   error: z.object({
     code: z.string(),
     message: z.string(),
