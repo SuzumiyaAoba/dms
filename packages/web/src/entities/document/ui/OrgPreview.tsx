@@ -3,6 +3,7 @@
 import * as React from 'react';
 import * as prod from 'react/jsx-runtime';
 import rehype2react from 'rehype-react';
+import rehypeSlug from 'rehype-slug';
 import { unified } from 'unified';
 import uniorgParse from 'uniorg-parse';
 import uniorg2rehype from 'uniorg-rehype';
@@ -22,6 +23,7 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         const result = await unified()
           .use(uniorgParse)
           .use(uniorg2rehype)
+          .use(rehypeSlug) // Add IDs to headings
           .use(rehype2react, prod)
           .process(content);
 
