@@ -36,7 +36,8 @@
       "!**/pnpm-lock.yaml",
       "!**/*.config.js",
       "!**/*.config.ts",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/next-env.d.ts"
     ]
   }
 }
