@@ -4,12 +4,18 @@ import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
 interface DocumentLayoutProps {
+  sidebarHeader?: React.ReactNode;
   sidebar: React.ReactNode;
   content: React.ReactNode;
   className?: string;
 }
 
-export function DocumentLayout({ sidebar, content, className }: DocumentLayoutProps) {
+export function DocumentLayout({
+  sidebarHeader,
+  sidebar,
+  content,
+  className,
+}: DocumentLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = React.useState(280);
   const [isResizing, setIsResizing] = React.useState(false);
 
@@ -56,9 +62,9 @@ export function DocumentLayout({ sidebar, content, className }: DocumentLayoutPr
         className="h-full border-r border-border bg-card overflow-y-auto flex flex-col"
         style={{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }}
       >
-        <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-semibold tracking-tight">Documents</h1>
-        </div>
+        {sidebarHeader && (
+          <div className="p-4 border-b border-border flex-shrink-0">{sidebarHeader}</div>
+        )}
         <div className="flex-1 p-4 overflow-y-auto">{sidebar}</div>
       </div>
 

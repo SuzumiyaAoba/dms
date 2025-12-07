@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import type { Document } from '@/shared/model/document';
+import { OrgPreview } from './OrgPreview';
 
 interface DocumentViewerProps {
   document: Document | null;
@@ -15,6 +16,11 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
   const [content, setContent] = useState<string>('');
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
+
+  // Helper to determine if file is org-mode
+  const isOrgFile = (fileName: string): boolean => {
+    return fileName.toLowerCase().endsWith('.org');
+  };
 
   useEffect(() => {
     if (!document) {
@@ -97,11 +103,18 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
           </div>
         ) : content ? (
           <div>
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono p-8 overflow-x-auto">
-                {content}
-              </pre>
-            </div>
+            {document && isOrgFile(document.fileName) ? (
+              <OrgPreview
+                content={content}
+                className="bg-card border border-border rounded-lg p-8"
+              />
+            ) : (
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono p-8 overflow-x-auto">
+                  {content}
+                </pre>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center py-12">

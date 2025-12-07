@@ -4,3 +4,4 @@
 
 export { DocumentList } from './DocumentList';
 export { DocumentViewer } from './DocumentViewer';
+export { OrgPreview } from './OrgPreview';
