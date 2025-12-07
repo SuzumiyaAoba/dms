@@ -54,9 +54,9 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
 
   return (
     <div
-      className={className}
+      className={`prose prose-slate max-w-none dark:prose-invert ${className || ''}`}
       style={{
-        lineHeight: '1.6',
+        lineHeight: '1.75',
       }}
     >
       {renderedContent}

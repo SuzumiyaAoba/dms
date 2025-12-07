@@ -413,4 +413,49 @@ documents.openapi(getDocumentContentRoute, async (c) => {
   );
 });
 
+/**
+ * POST /documents/sync - Sync documents with storage
+ */
+const syncDocumentsRoute = createRoute({
+  method: 'post',
+  path: '/sync',
+  tags: ['Documents'],
+  summary: 'Sync documents with storage',
+  description:
+    'Synchronize document metadata with actual files in storage. Adds new files and removes documents for deleted files.',
+  responses: {
+    200: {
+      description: 'Sync completed successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            data: z.object({
+              added: z.number().openapi({ example: 5, description: 'Number of documents added' }),
+              removed: z
+                .number()
+                .openapi({ example: 2, description: 'Number of documents removed' }),
+              message: z.string().openapi({ example: 'Sync completed successfully' }),
+            }),
+            meta: z.object({
+              timestamp: z.string().datetime(),
+              requestId: z.string().optional(),
+            }),
+          }),
+        },
+      },
+    },
+  },
+});
+
+documents.openapi(syncDocumentsRoute, async (c) => {
+  return runEffectHandler(c, DocumentService.syncDocuments(), ({ added, removed }) =>
+    successResponse(c, {
+      added,
+      removed,
+      message: 'Sync completed successfully',
+    }),
+  );
+});
+
 export default documents;

@@ -15,8 +15,10 @@
   },
   "dependencies": {
     "@dms/core": "workspace:*",
+    "@tailwindcss/typography": "^0.5.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "http-proxy-middleware": "^3.0.5",
     "lucide-react": "^0.556.0",
     "next": "^16.0.5",
     "react": "^19.2.0",

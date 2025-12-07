@@ -138,19 +138,16 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
           <div>
             {activeTab === 'preview' ? (
               document && isOrgFile(document.fileName) ? (
-                <OrgPreview
-                  content={content}
-                  className="bg-card border border-border rounded-lg p-8"
-                />
+                <OrgPreview content={content} className="p-8" />
               ) : (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="overflow-hidden">
                   <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono p-8 overflow-x-auto">
                     {content}
                   </pre>
                 </div>
               )
             ) : (
-              <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="overflow-hidden">
                 <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono p-8 overflow-x-auto">
                   {content}
                 </pre>

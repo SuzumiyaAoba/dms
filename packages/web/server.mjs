@@ -12,17 +12,18 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, parse } from 'node:url';
 import { getPort } from 'get-port-please';
 import next from 'next';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
 
 // Preferred port for web server
-const preferredPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3001;
+const preferredPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 // Read API port from .env.port file (with retry logic)
 const apiEnvPortPath = join(__dirname, '../api/.env.port');
-let apiPort = 3000; // Default fallback
+let apiPort = 3001; // Default fallback
 
 // Wait for API server to write .env.port file (max 10 seconds)
 const maxWaitTime = 10000; // 10 seconds
@@ -44,10 +45,10 @@ if (existsSync(apiEnvPortPath)) {
       console.log(`[Web Server] Read API port from .env.port: ${apiPort}`);
     }
   } catch (_error) {
-    console.warn('[Web Server] Failed to read API port from .env.port, using default 3000');
+    console.warn('[Web Server] Failed to read API port from .env.port, using default 3001');
   }
 } else {
-  console.warn('[Web Server] .env.port not found after waiting, using default API port 3000');
+  console.warn('[Web Server] .env.port not found after waiting, using default API port 3001');
 }
 
 // Set API URL environment variables for Next.js
@@ -69,9 +70,23 @@ const handle = app.getRequestHandler();
 
 await app.prepare();
 
+// Create API proxy middleware
+const apiProxy = createProxyMiddleware({
+  target: `http://localhost:${apiPort}`,
+  changeOrigin: true,
+  pathFilter: '/api/v1/**',
+  logLevel: 'silent',
+});
+
 // Create HTTP server
 createServer(async (req, res) => {
   try {
+    // Proxy API requests
+    if (req.url?.startsWith('/api/v1')) {
+      apiProxy(req, res);
+      return;
+    }
+
     const parsedUrl = parse(req.url, true);
     await handle(req, res, parsedUrl);
   } catch (err) {
@@ -82,4 +97,5 @@ createServer(async (req, res) => {
 }).listen(port, hostname, () => {
   console.log(`[Web Server] Ready on http://${hostname}:${port}`);
   console.log(`[Web Server] Environment: ${dev ? 'development' : 'production'}`);
+  console.log(`[Web Server] API proxy enabled: /api/v1 -> http://localhost:${apiPort}`);
 });

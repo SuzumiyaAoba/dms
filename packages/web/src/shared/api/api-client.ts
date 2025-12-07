@@ -255,6 +255,45 @@ export class ApiClient {
   }
 
   /**
+   * Sync documents with storage
+   * Following "Parse, don't validate" - uses Zod to parse response
+   */
+  async syncDocuments(): Promise<{ added: number; removed: number; message: string }> {
+    const response = await fetch(`${this.baseUrl}/documents/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const json = await response.json();
+
+    // Try to parse as error response first
+    const errorResult = ApiErrorResponseSchema.safeParse(json);
+    if (errorResult.success) {
+      const errorData = errorResult.data;
+      throw new ApiClientError(
+        errorData.error.message,
+        errorData.error.code,
+        errorData.error.details,
+      );
+    }
+
+    // Parse as success response
+    const SyncResponseSchema = z.object({
+      added: z.number(),
+      removed: z.number(),
+      message: z.string(),
+    });
+    const parseResult = ApiSuccessResponseSchema(SyncResponseSchema).safeParse(json);
+    if (!parseResult.success) {
+      throw new Error(`Failed to parse API response: ${parseResult.error.message}`);
+    }
+
+    return parseResult.data.data;
+  }
+
+  /**
    * Get health status
    * Following "Parse, don't validate" - uses Zod to parse response
    *

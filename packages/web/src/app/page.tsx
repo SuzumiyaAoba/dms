@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
+import { SyncButton } from '@/features/document-sync';
 import { apiClient } from '@/shared/api';
 import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
 import type { Document } from '@/shared/model/document';
@@ -17,8 +18,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Load documents on mount
-  useEffect(() => {
+  // Load documents function
+  const loadDocuments = React.useCallback(() => {
+    setIsLoading(true);
     apiClient
       .listDocuments(1, 100)
       .then((response) => {
@@ -33,6 +35,11 @@ export default function Home() {
         setIsLoading(false);
       });
   }, []);
+
+  // Load documents on mount
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
 
   // Filter tree nodes based on search query
   const filteredTreeNodes = React.useMemo(() => {
@@ -104,6 +111,7 @@ export default function Home() {
     <DocumentLayout
       sidebarHeader={
         <div className="space-y-2">
+          <SyncButton onSyncComplete={loadDocuments} />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input

@@ -221,7 +221,7 @@ export namespace DocumentService {
         if (!exists) {
           yield* repository.create({
             title: file.fileName,
-            description: null,
+            description: undefined,
             tags: [],
             metadata: {},
             fileUrl: file.filePath,
@@ -235,6 +235,93 @@ export namespace DocumentService {
 
       logger.info({ importedCount, totalFiles: files.length }, 'Imported existing files');
       return importedCount;
+    });
+  }
+
+  /**
+   * Sync documents with storage
+   *
+   * This method:
+   * 1. Scans all files in storage
+   * 2. Adds new files to repository
+   * 3. Removes documents whose files no longer exist in storage
+   *
+   * @returns Object containing counts of added and removed documents
+   */
+  export function syncDocuments(): Effect.Effect<
+    { added: number; removed: number },
+    AppError,
+    StorageAdapter | DocumentRepositoryService
+  > {
+    return Effect.gen(function* () {
+      const storageAdapter = yield* StorageAdapter;
+      const repository = yield* DocumentRepositoryService;
+
+      // Check if storage adapter supports scanning
+      if (!('scanExistingFiles' in storageAdapter)) {
+        logger.warn('Storage adapter does not support scanning existing files');
+        return { added: 0, removed: 0 };
+      }
+
+      // Get all files from storage
+      const files = yield* Effect.promise(() =>
+        (
+          storageAdapter as unknown as {
+            scanExistingFiles: () => Promise<
+              Array<{
+                fileName: string;
+                filePath: string;
+                fileSize: number;
+                mimeType: string;
+                modifiedAt: Date;
+              }>
+            >;
+          }
+        ).scanExistingFiles(),
+      );
+
+      // Get all documents from repository
+      const allDocs = yield* repository.findAll(1, 10000);
+      const existingDocs = allDocs.items;
+
+      // Create a set of file paths for quick lookup
+      const filePaths = new Set(files.map((f) => f.filePath));
+
+      let addedCount = 0;
+      let removedCount = 0;
+
+      // Add new files to repository
+      for (const file of files) {
+        const exists = existingDocs.some((doc) => doc.fileUrl === file.filePath);
+
+        if (!exists) {
+          yield* repository.create({
+            title: file.fileName,
+            description: undefined,
+            tags: [],
+            metadata: {},
+            fileUrl: file.filePath,
+            fileName: file.fileName,
+            fileSize: file.fileSize,
+            mimeType: file.mimeType,
+          });
+          addedCount++;
+        }
+      }
+
+      // Remove documents whose files no longer exist
+      for (const doc of existingDocs) {
+        if (!filePaths.has(doc.fileUrl)) {
+          yield* repository.delete(doc.id);
+          removedCount++;
+        }
+      }
+
+      logger.info(
+        { added: addedCount, removed: removedCount, totalFiles: files.length },
+        'Synced documents with storage',
+      );
+      return { added: addedCount, removed: removedCount };
     });
   }
 }
