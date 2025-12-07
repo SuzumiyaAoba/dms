@@ -1,6 +1,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
@@ -12,6 +13,8 @@ import { DirectoryTree } from '@/widgets/directory-tree';
 import { DocumentLayout } from '@/widgets/document-layout';
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
@@ -40,6 +43,17 @@ export default function Home() {
   useEffect(() => {
     loadDocuments();
   }, [loadDocuments]);
+
+  // Load selected document from URL
+  useEffect(() => {
+    const docId = searchParams.get('id');
+    if (docId && documents.length > 0) {
+      const doc = documents.find((d) => d.id === docId);
+      if (doc) {
+        setSelectedDocument(doc);
+      }
+    }
+  }, [searchParams, documents]);
 
   // Filter tree nodes based on search query
   const filteredTreeNodes = React.useMemo(() => {
@@ -96,6 +110,8 @@ export default function Home() {
   const handleNodeClick = (node: TreeNode) => {
     if (node.type === 'file' && node.document) {
       setSelectedDocument(node.document);
+      // Update URL with document ID
+      router.push(`/?id=${node.document.id}`, { scroll: false });
     }
   };
 
