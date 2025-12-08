@@ -75,7 +75,14 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
         <span className="truncate text-sm">{node.name}</span>
       </Button>
       {hasChildren && isExpanded && (
-        <div className="mt-0.5">
+        <div className="relative mt-0.5">
+          {level > 0 && (
+            <span
+              className="absolute top-0 bottom-0 w-px bg-border opacity-70 pointer-events-none"
+              style={{ left: `${indentation - 12}px` }}
+              aria-hidden
+            />
+          )}
           {node.children?.map((child) => (
             <TreeItem
               key={child.id}
