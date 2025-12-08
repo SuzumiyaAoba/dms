@@ -83,6 +83,7 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         { left: '$', right: '$', display: false },
         { left: '\\(', right: '\\)', display: false },
       ],
+      ignoredClasses: ['math', 'math-inline', 'math-display'],
       throwOnError: false,
       strict: false,
     });
