@@ -1,5 +1,6 @@
 'use client';
 
+import renderMathInElement from 'katex/contrib/auto-render';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import * as prod from 'react/jsx-runtime';
@@ -65,6 +66,17 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   // Apply collapsed state to DOM elements
   React.useEffect(() => {
     if (!contentRef.current || !renderedContent) return;
+
+    // Render math expressions using KaTeX
+    renderMathInElement(contentRef.current, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '\\[', right: '\\]', display: true },
+        { left: '$', right: '$', display: false },
+        { left: '\\(', right: '\\)', display: false },
+      ],
+      throwOnError: false,
+    });
 
     const headings = contentRef.current.querySelectorAll('[data-heading-level]');
 
