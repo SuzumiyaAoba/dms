@@ -196,6 +196,7 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
           <nav className="space-y-1">
             {visibleHeadings.map((heading) => {
               const isHeadingCollapsed = collapsedHeadings.has(heading.id);
+              const indentation = (heading.level - 1) * 12; // px
               // Check if this heading has children
               const hasChildren = headings.some(
                 (h) =>
@@ -212,7 +213,7 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
                   key={heading.id}
                   type="button"
                   onClick={(e) => handleClick(heading.id, e)}
-                  className={`flex items-center gap-1 w-full text-left text-sm transition-colors hover:text-foreground ${
+                  className={`relative flex items-center gap-1 w-full text-left text-sm transition-colors hover:text-foreground ${
                     activeId === heading.id
                       ? 'text-foreground font-medium'
                       : 'text-muted-foreground'
@@ -221,6 +222,15 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
                     paddingLeft: `${(heading.level - 1) * 0.75}rem`,
                   }}
                 >
+                  {heading.level > 1 && (
+                    <span
+                      className="absolute top-1 bottom-1 w-px bg-border opacity-70 pointer-events-none"
+                      style={{
+                        left: `${indentation - 8}px`,
+                      }}
+                      aria-hidden
+                    />
+                  )}
                   {hasChildren && (
                     <span className="toggle-icon flex-shrink-0">
                       {isHeadingCollapsed ? (
