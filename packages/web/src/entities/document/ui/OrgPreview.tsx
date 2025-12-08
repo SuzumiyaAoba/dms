@@ -1,5 +1,6 @@
 'use client';
 
+import katex from 'katex';
 import renderMathInElement from 'katex/contrib/auto-render';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
@@ -82,6 +83,23 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
       throwOnError: false,
       strict: false,
     });
+
+    // Render Org-mode math nodes (.math-inline / .math-display) that come without delimiters
+    const mathNodes = contentRef.current.querySelectorAll('.math-inline, .math-display');
+    for (const node of Array.from(mathNodes)) {
+      const element = node as HTMLElement;
+      const tex = element.textContent || '';
+      const displayMode = element.classList.contains('math-display');
+      try {
+        katex.render(tex, element, {
+          displayMode,
+          throwOnError: false,
+          strict: false,
+        });
+      } catch (err) {
+        console.error('Failed to render math', err);
+      }
+    }
 
     const headings = contentRef.current.querySelectorAll('[data-heading-level]');
 
