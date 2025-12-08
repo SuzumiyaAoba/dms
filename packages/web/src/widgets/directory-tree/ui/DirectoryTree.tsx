@@ -24,6 +24,7 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(level === 0);
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedNodeId === node.id;
+  const indentation = level * 16 + 8;
 
   const handleClick = () => {
     if (node.type === 'directory') {
@@ -34,16 +35,23 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
   };
 
   return (
-    <div>
+    <div className="relative">
+      {level > 0 && (
+        <span
+          className="absolute top-1 bottom-1 w-px bg-border opacity-70 pointer-events-none"
+          style={{ left: `${indentation - 12}px` }}
+          aria-hidden
+        />
+      )}
       <Button
         variant="ghost"
         className={cn(
           'w-full justify-start gap-2 px-2 py-1.5 h-auto font-normal text-foreground',
           'hover:bg-accent hover:text-accent-foreground transition-colors',
-          'rounded-md',
+          'rounded-md relative',
           isSelected && 'bg-accent text-accent-foreground font-medium',
         )}
-        style={{ paddingLeft: `${level * 16 + 8}px` }}
+        style={{ paddingLeft: `${indentation}px` }}
         onClick={handleClick}
       >
         {hasChildren && (
