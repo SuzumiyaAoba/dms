@@ -38,7 +38,7 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
     <div className="relative">
       {level > 0 && (
         <span
-          className="absolute top-1 bottom-1 w-px bg-border opacity-70 pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-border opacity-70 pointer-events-none"
           style={{ left: `${indentation - 12}px` }}
           aria-hidden
         />
