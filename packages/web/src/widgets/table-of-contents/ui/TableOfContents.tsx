@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronRight, List } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useCollapsedContext } from '@/entities/document/ui/CollapsedContext';
 
 interface Heading {
   id: string;
@@ -115,6 +116,7 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { collapsedHeadings, toggleHeading } = useCollapsedContext();
 
   useEffect(() => {
     const extracted = extractHeadings(content);
@@ -142,12 +144,37 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [headings]);
 
-  const handleClick = (id: string) => {
+  const handleClick = (id: string, e: React.MouseEvent) => {
+    // If clicking on the chevron area (left side), toggle collapse
+    const target = e.target as HTMLElement;
+    if (target.closest('.toggle-icon')) {
+      e.stopPropagation();
+      toggleHeading(id);
+      return;
+    }
+
+    // Otherwise, scroll to the heading
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // Filter out headings that are children of collapsed headings
+  const visibleHeadings = headings.filter((heading) => {
+    // Check if any parent heading is collapsed
+    for (let i = headings.indexOf(heading) - 1; i >= 0; i--) {
+      const potentialParent = headings[i];
+      if (potentialParent.level < heading.level) {
+        // This is a parent heading
+        if (collapsedHeadings.has(potentialParent.id)) {
+          return false; // Hide this heading
+        }
+        break; // Found the immediate parent, no need to check further
+      }
+    }
+    return true;
+  });
 
   if (headings.length === 0) {
     return null;
@@ -167,21 +194,46 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
         </button>
         {!isCollapsed && (
           <nav className="space-y-1">
-            {headings.map((heading) => (
-              <button
-                key={heading.id}
-                type="button"
-                onClick={() => handleClick(heading.id)}
-                className={`block w-full text-left text-sm transition-colors hover:text-foreground ${
-                  activeId === heading.id ? 'text-foreground font-medium' : 'text-muted-foreground'
-                }`}
-                style={{
-                  paddingLeft: `${(heading.level - 1) * 0.75}rem`,
-                }}
-              >
-                {heading.text}
-              </button>
-            ))}
+            {visibleHeadings.map((heading) => {
+              const isHeadingCollapsed = collapsedHeadings.has(heading.id);
+              // Check if this heading has children
+              const hasChildren = headings.some(
+                (h) =>
+                  headings.indexOf(h) > headings.indexOf(heading) &&
+                  h.level > heading.level &&
+                  (headings.indexOf(h) === headings.indexOf(heading) + 1 ||
+                    headings
+                      .slice(headings.indexOf(heading) + 1, headings.indexOf(h))
+                      .every((between) => between.level > heading.level)),
+              );
+
+              return (
+                <button
+                  key={heading.id}
+                  type="button"
+                  onClick={(e) => handleClick(heading.id, e)}
+                  className={`flex items-center gap-1 w-full text-left text-sm transition-colors hover:text-foreground ${
+                    activeId === heading.id
+                      ? 'text-foreground font-medium'
+                      : 'text-muted-foreground'
+                  }`}
+                  style={{
+                    paddingLeft: `${(heading.level - 1) * 0.75}rem`,
+                  }}
+                >
+                  {hasChildren && (
+                    <span className="toggle-icon flex-shrink-0">
+                      {isHeadingCollapsed ? (
+                        <ChevronRight className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </span>
+                  )}
+                  <span className={hasChildren ? '' : 'ml-4'}>{heading.text}</span>
+                </button>
+              );
+            })}
           </nav>
         )}
       </div>
