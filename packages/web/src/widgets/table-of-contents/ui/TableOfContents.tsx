@@ -1,6 +1,6 @@
 'use client';
 
-import { List } from 'lucide-react';
+import { ChevronDown, ChevronRight, List } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Heading {
@@ -114,6 +114,7 @@ function extractHeadings(content: string): Heading[] {
 export function TableOfContents({ content, className }: TableOfContentsProps) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const extracted = extractHeadings(content);
@@ -155,27 +156,34 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
   return (
     <div className={className}>
       <div className="sticky top-6">
-        <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground hover:opacity-70 transition-opacity w-full"
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           <List className="h-4 w-4" />
           <span>目次</span>
-        </div>
-        <nav className="space-y-1">
-          {headings.map((heading) => (
-            <button
-              key={heading.id}
-              type="button"
-              onClick={() => handleClick(heading.id)}
-              className={`block w-full text-left text-sm transition-colors hover:text-foreground ${
-                activeId === heading.id ? 'text-foreground font-medium' : 'text-muted-foreground'
-              }`}
-              style={{
-                paddingLeft: `${(heading.level - 1) * 0.75}rem`,
-              }}
-            >
-              {heading.text}
-            </button>
-          ))}
-        </nav>
+        </button>
+        {!isCollapsed && (
+          <nav className="space-y-1">
+            {headings.map((heading) => (
+              <button
+                key={heading.id}
+                type="button"
+                onClick={() => handleClick(heading.id)}
+                className={`block w-full text-left text-sm transition-colors hover:text-foreground ${
+                  activeId === heading.id ? 'text-foreground font-medium' : 'text-muted-foreground'
+                }`}
+                style={{
+                  paddingLeft: `${(heading.level - 1) * 0.75}rem`,
+                }}
+              >
+                {heading.text}
+              </button>
+            ))}
+          </nav>
+        )}
       </div>
     </div>
   );
