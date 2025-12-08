@@ -1,5 +1,7 @@
 'use client';
 
+import toml from '@iarna/toml';
+import yaml from 'js-yaml';
 import katex from 'katex';
 import renderMathInElement from 'katex/contrib/auto-render';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -7,6 +9,8 @@ import * as React from 'react';
 import * as prod from 'react/jsx-runtime';
 import rehype2react from 'rehype-react';
 import rehypeSlug from 'rehype-slug';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import uniorgParse from 'uniorg-parse';
 import uniorg2rehype from 'uniorg-rehype';
@@ -15,6 +19,37 @@ import { CollapsedContext } from './CollapsedContext';
 interface OrgPreviewProps {
   content: string;
   className?: string;
+}
+
+interface FrontmatterResult {
+  data: Record<string, unknown> | null;
+  body: string;
+}
+
+function extractFrontmatter(raw: string): FrontmatterResult {
+  try {
+    const tree = unified().use(remarkParse).use(remarkFrontmatter, ['yaml', 'toml']).parse(raw);
+    const first = tree.children.at(0);
+
+    if (first && (first.type === 'yaml' || first.type === 'toml') && 'value' in first) {
+      const value = (first as { value: string }).value;
+      const data =
+        first.type === 'yaml'
+          ? ((yaml.load(value) as Record<string, unknown>) ?? {})
+          : (toml.parse(value) as Record<string, unknown>);
+
+      // Remove the frontmatter block from the body
+      const frontmatterRegex =
+        first.type === 'yaml' ? /^---\n[\s\S]*?\n---\n?/ : /^\+\+\+\n[\s\S]*?\n\+\+\+\n?/;
+      const body = raw.replace(frontmatterRegex, '');
+
+      return { data, body };
+    }
+  } catch (err) {
+    console.error('Failed to parse frontmatter', err);
+  }
+
+  return { data: null, body: raw };
 }
 
 // Custom heading component that supports collapsing
@@ -64,6 +99,7 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   const { collapsedHeadings } = React.useContext(CollapsedContext);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const mathRenderedRef = React.useRef(false);
+  const [frontmatter, setFrontmatter] = React.useState<Record<string, unknown> | null>(null);
 
   // Render math (KaTeX) once per content render
   React.useEffect(() => {
@@ -152,6 +188,8 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   React.useEffect(() => {
     const parseOrgContent = async () => {
       try {
+        const { data: parsedFrontmatter, body } = extractFrontmatter(content);
+        setFrontmatter(parsedFrontmatter);
         mathRenderedRef.current = false;
 
         const components = {
@@ -180,7 +218,7 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
           .use(uniorg2rehype)
           .use(rehypeSlug) // Add IDs to headings
           .use(rehype2react, { ...prod, components })
-          .process(content);
+          .process(body);
 
         setRenderedContent(result.result as React.ReactElement);
         setError(null);
@@ -217,6 +255,14 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         lineHeight: '1.75',
       }}
     >
+      {frontmatter && Object.keys(frontmatter).length > 0 && (
+        <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4">
+          <div className="text-sm font-semibold text-muted-foreground mb-2">Frontmatter</div>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+            {JSON.stringify(frontmatter, null, 2)}
+          </pre>
+        </div>
+      )}
       {renderedContent}
     </div>
   );
