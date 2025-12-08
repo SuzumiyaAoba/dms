@@ -72,10 +72,15 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
       delimiters: [
         { left: '$$', right: '$$', display: true },
         { left: '\\[', right: '\\]', display: true },
+        { left: '\\begin{equation}', right: '\\end{equation}', display: true },
+        { left: '\\begin{equation*}', right: '\\end{equation*}', display: true },
+        { left: '\\begin{align}', right: '\\end{align}', display: true },
+        { left: '\\begin{align*}', right: '\\end{align*}', display: true },
         { left: '$', right: '$', display: false },
         { left: '\\(', right: '\\)', display: false },
       ],
       throwOnError: false,
+      strict: false,
     });
 
     const headings = contentRef.current.querySelectorAll('[data-heading-level]');
