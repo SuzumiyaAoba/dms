@@ -63,10 +63,13 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   const [error, setError] = React.useState<string | null>(null);
   const { collapsedHeadings } = React.useContext(CollapsedContext);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const mathRenderedRef = React.useRef(false);
 
-  // Apply collapsed state to DOM elements
+  // Render math (KaTeX) once per content render
   React.useEffect(() => {
     if (!contentRef.current || !renderedContent) return;
+
+    if (mathRenderedRef.current) return;
 
     // Render math expressions using KaTeX
     renderMathInElement(contentRef.current, {
@@ -100,6 +103,13 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         console.error('Failed to render math', err);
       }
     }
+
+    mathRenderedRef.current = true;
+  }, [renderedContent]);
+
+  // Apply collapsed state to DOM elements
+  React.useEffect(() => {
+    if (!contentRef.current || !renderedContent) return;
 
     const headings = contentRef.current.querySelectorAll('[data-heading-level]');
 
@@ -141,6 +151,8 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   React.useEffect(() => {
     const parseOrgContent = async () => {
       try {
+        mathRenderedRef.current = false;
+
         const components = {
           h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
             <CollapsibleHeading level={1} {...props} />
