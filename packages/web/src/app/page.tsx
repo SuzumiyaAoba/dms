@@ -1,18 +1,20 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
 import { SyncButton } from '@/features/document-sync';
 import { apiClient } from '@/shared/api';
 import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
-import type { Document } from '@/shared/model/document';
+import type { Document } from '@/shared/model';
+import { useSyncDirectories } from '@/shared/providers/sync-directories';
 import { DirectoryTree } from '@/widgets/directory-tree';
 import { DocumentLayout } from '@/widgets/document-layout';
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -20,8 +22,7 @@ export default function Home() {
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [syncDirectories, setSyncDirectories] = useState<string[]>([]);
-  const [directoryInput, setDirectoryInput] = useState('');
+  const { directories, effectiveDirectories, setDirectories } = useSyncDirectories();
 
   // Load documents function
   const loadDocuments = React.useCallback(() => {
@@ -43,11 +44,6 @@ export default function Home() {
   useEffect(() => {
     loadDocuments();
   }, [loadDocuments]);
-
-  const effectiveDirectories = useMemo(
-    () => (syncDirectories.length > 0 ? syncDirectories : ['zettelkasten']),
-    [syncDirectories],
-  );
 
   useEffect(() => {
     setTreeNodes(buildDirectoryTree(documents, effectiveDirectories));
@@ -107,29 +103,11 @@ export default function Home() {
     }
   };
 
-  const handleAddDirectory = () => {
-    const value = directoryInput.trim();
-    if (!value) return;
-    setSyncDirectories((prev) => (prev.includes(value) ? prev : [...prev, value]));
-    setDirectoryInput('');
-  };
-
-  const handleRemoveDirectory = (dir: string) => {
-    setSyncDirectories((prev) => prev.filter((d) => d !== dir));
-  };
-
   const handleSyncComplete = (directories: string[]) => {
     if (directories.length > 0) {
-      setSyncDirectories(directories);
+      setDirectories(directories);
     }
     loadDocuments();
-  };
-
-  const handleDirectoryInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      handleAddDirectory();
-    }
   };
 
   if (isLoading) {
@@ -145,31 +123,18 @@ export default function Home() {
       sidebarHeader={
         <div className="space-y-3">
           <div className="space-y-2 rounded-md border border-border bg-card p-3">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">同期対象ディレクトリ</p>
-              <p className="text-xs text-muted-foreground">
-                ルートディレクトリを1行ずつ追加してください（~/path 形式も可）。
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="~/zettelkasten や /Users/you/notes"
-                value={directoryInput}
-                onChange={(e) => setDirectoryInput(e.target.value)}
-                onKeyDown={handleDirectoryInputKeyDown}
-                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button
-                type="button"
-                onClick={handleAddDirectory}
-                className="px-3 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
-              >
-                追加
-              </button>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">同期対象ディレクトリ</p>
+              </div>
+              <Link href="/settings" aria-label="設定を開く">
+                <span className="inline-flex items-center justify-center rounded-md border border-border bg-muted p-2 hover:bg-muted/80 transition">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </span>
+              </Link>
             </div>
             <div className="flex flex-wrap gap-2">
-              {syncDirectories.map((dir) => (
+              {effectiveDirectories.map((dir) => (
                 <span
                   key={dir}
                   className="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-2 py-1 text-xs"
@@ -177,23 +142,15 @@ export default function Home() {
                   <span className="max-w-[220px] truncate" title={dir}>
                     {dir}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveDirectory(dir)}
-                    className="text-muted-foreground hover:text-foreground"
-                    aria-label={`${dir} を削除`}
-                  >
-                    ×
-                  </button>
                 </span>
               ))}
-              {syncDirectories.length === 0 && (
+              {directories.length === 0 && (
                 <span className="text-xs text-muted-foreground">
                   未指定の場合は既定のストレージパスを使用します
                 </span>
               )}
             </div>
-            <SyncButton directories={syncDirectories} onSyncComplete={handleSyncComplete} />
+            <SyncButton directories={effectiveDirectories} onSyncComplete={handleSyncComplete} />
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -223,5 +180,19 @@ export default function Home() {
       }
       content={<DocumentViewer document={selectedDocument} />}
     />
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen">
+          <p className="text-muted-foreground">読み込み中...</p>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

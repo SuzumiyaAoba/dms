@@ -109,12 +109,7 @@ export class ApiClient {
       },
     });
 
-    const json = await response.json();
-
-    // Debug log
-    console.log('API Response:', json);
-    console.log('Response type:', typeof json);
-    console.log('Response success:', json?.success, typeof json?.success);
+    const json: unknown = await response.json();
 
     // Try to parse as error response first
     const errorResult = ApiErrorResponseSchema.safeParse(json);

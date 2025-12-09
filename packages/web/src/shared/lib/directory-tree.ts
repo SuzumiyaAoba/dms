@@ -1,4 +1,4 @@
-import type { Document } from '@/shared/model/document';
+import type { Document } from '@/shared/model';
 
 export interface TreeNode {
   id: string;

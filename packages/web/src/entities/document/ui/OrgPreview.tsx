@@ -59,7 +59,7 @@ function CollapsibleHeading({
   id,
 }: {
   level: 1 | 2 | 3 | 4 | 5 | 6;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   id?: string;
 }) {
   const { collapsedHeadings, toggleHeading } = React.useContext(CollapsedContext);
@@ -192,25 +192,19 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         setFrontmatter(parsedFrontmatter);
         mathRenderedRef.current = false;
 
+        const heading =
+          (level: 1 | 2 | 3 | 4 | 5 | 6) =>
+          (props: React.PropsWithChildren<React.HTMLAttributes<HTMLHeadingElement>>) => (
+            <CollapsibleHeading level={level} {...props} />
+          );
+
         const components = {
-          h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={1} {...props} />
-          ),
-          h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={2} {...props} />
-          ),
-          h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={3} {...props} />
-          ),
-          h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={4} {...props} />
-          ),
-          h5: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={5} {...props} />
-          ),
-          h6: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <CollapsibleHeading level={6} {...props} />
-          ),
+          h1: heading(1),
+          h2: heading(2),
+          h3: heading(3),
+          h4: heading(4),
+          h5: heading(5),
+          h6: heading(6),
         };
 
         const result = await unified()

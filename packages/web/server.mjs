@@ -6,7 +6,7 @@
  * the API_URL environment variable.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, parse } from 'node:url';
@@ -23,33 +23,98 @@ const preferredPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) :
 
 // Read API port from .env.port file (with retry logic)
 const apiEnvPortPath = join(__dirname, '../api/.env.port');
-let apiPort = 3001; // Default fallback
-
-// Wait for API server to write .env.port file (max 10 seconds)
+const fallbackApiPort = 3000; // Align with API default
 const maxWaitTime = 10000; // 10 seconds
 const checkInterval = 500; // 500ms
-let waited = 0;
+const staleFileThreshold = 30000; // 30 seconds
 
-while (!existsSync(apiEnvPortPath) && waited < maxWaitTime) {
-  console.log(`[Web Server] Waiting for API server to start... (${waited}ms)`);
-  await new Promise((resolve) => setTimeout(resolve, checkInterval));
-  waited += checkInterval;
+/**
+ * Wait for a short period
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-if (existsSync(apiEnvPortPath)) {
+/**
+ * Attempt to read API port from .env.port file when it's fresh
+ */
+function readApiPortFromFile() {
+  if (!existsSync(apiEnvPortPath)) {
+    return null;
+  }
+
   try {
+    const stats = statSync(apiEnvPortPath);
+    const age = Date.now() - stats.mtimeMs;
+    if (age > staleFileThreshold) {
+      console.warn(
+        `[Web Server] .env.port looks stale (${Math.round(age)}ms old). Waiting for a fresh value...`,
+      );
+      return null;
+    }
+
     const content = readFileSync(apiEnvPortPath, 'utf-8');
     const match = content.match(/API_PORT=(\d+)/);
-    if (match) {
-      apiPort = Number.parseInt(match[1], 10);
-      console.log(`[Web Server] Read API port from .env.port: ${apiPort}`);
+    if (!match) {
+      console.warn('[Web Server] .env.port is missing API_PORT entry');
+      return null;
     }
+
+    return Number.parseInt(match[1], 10);
   } catch (_error) {
-    console.warn('[Web Server] Failed to read API port from .env.port, using default 3001');
+    console.warn('[Web Server] Failed to read API port from .env.port');
+    return null;
   }
-} else {
-  console.warn('[Web Server] .env.port not found after waiting, using default API port 3001');
 }
+
+/**
+ * Check if the API server is responding on the given port
+ */
+async function isApiReachable(port) {
+  try {
+    const response = await fetch(`http://localhost:${port}/health`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve API port with freshness and reachability checks
+ */
+async function resolveApiPort() {
+  const startedAt = Date.now();
+  let lastError = '';
+
+  while (Date.now() - startedAt < maxWaitTime) {
+    const port = readApiPortFromFile();
+    if (port) {
+      const reachable = await isApiReachable(port);
+      if (reachable) {
+        console.log(`[Web Server] Using API port from .env.port: ${port}`);
+        return port;
+      }
+
+      lastError = `API not responding on ${port}`;
+      console.warn(`[Web Server] ${lastError}, retrying...`);
+    } else {
+      console.log(
+        `[Web Server] Waiting for API server to start... (${Date.now() - startedAt}ms)`,
+      );
+    }
+
+    await sleep(checkInterval);
+  }
+
+  console.warn(
+    `[Web Server] Could not determine API port (${lastError || 'no .env.port found'}), falling back to ${fallbackApiPort}`,
+  );
+  return fallbackApiPort;
+}
+
+const apiPort = await resolveApiPort();
 
 // Set API URL environment variables for Next.js
 process.env.NEXT_PUBLIC_API_URL = `http://localhost:${apiPort}/api/v1`;

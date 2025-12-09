@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
-import type { Document } from '@/shared/model/document';
+import type { Document } from '@/shared/model';
 import { TableOfContents } from '@/widgets/table-of-contents';
 import { CollapsedProvider } from './CollapsedContext';
 import { OrgPreview } from './OrgPreview';

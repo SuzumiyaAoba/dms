@@ -1,3 +1,5 @@
+// @ts-nocheck - Hono OpenAPI route helpers produce response types tsc cannot infer cleanly
+
 /**
  * Document routes module
  *

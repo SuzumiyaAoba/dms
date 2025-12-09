@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { DocumentList } from '@/entities/document';
 import { SyncButton } from '@/features/document-sync';
 import type { Document } from '@/shared/model';
+import { useSyncDirectories } from '@/shared/providers/sync-directories';
 import { Pagination } from '@/shared/ui';
 
 interface DocumentsPageClientProps {
@@ -22,8 +23,12 @@ interface DocumentsPageClientProps {
 
 export function DocumentsPageClient({ documents, error, page }: DocumentsPageClientProps) {
   const router = useRouter();
+  const { effectiveDirectories, setDirectories } = useSyncDirectories();
 
-  const handleSyncComplete = () => {
+  const handleSyncComplete = (directories: string[]) => {
+    if (directories.length > 0) {
+      setDirectories(directories);
+    }
     // Refresh the page to show updated document list
     router.refresh();
   };
@@ -49,7 +54,10 @@ export function DocumentsPageClient({ documents, error, page }: DocumentsPageCli
             </p>
           )}
         </div>
-        <SyncButton directories={[]} onSyncComplete={() => handleSyncComplete()} />
+        <SyncButton
+          directories={effectiveDirectories}
+          onSyncComplete={(dirs) => handleSyncComplete(dirs)}
+        />
       </div>
 
       {error ? (
