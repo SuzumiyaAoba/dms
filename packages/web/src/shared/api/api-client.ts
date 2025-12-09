@@ -258,12 +258,15 @@ export class ApiClient {
    * Sync documents with storage
    * Following "Parse, don't validate" - uses Zod to parse response
    */
-  async syncDocuments(): Promise<{ added: number; removed: number; message: string }> {
+  async syncDocuments(
+    directories: string[] = [],
+  ): Promise<{ added: number; removed: number; message: string; directories: string[] }> {
     const response = await fetch(`${this.baseUrl}/documents/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ directories }),
     });
 
     const json = await response.json();
@@ -284,6 +287,7 @@ export class ApiClient {
       added: z.number(),
       removed: z.number(),
       message: z.string(),
+      directories: z.array(z.string()),
     });
     const parseResult = ApiSuccessResponseSchema(SyncResponseSchema).safeParse(json);
     if (!parseResult.success) {

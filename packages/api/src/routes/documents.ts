@@ -7,6 +7,8 @@
  * @module routes/documents
  */
 
+import * as os from 'node:os';
+import * as path from 'node:path';
 // @ts-nocheck - OpenAPI type inference issues with response types
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Effect } from 'effect';
@@ -423,6 +425,28 @@ const syncDocumentsRoute = createRoute({
   summary: 'Sync documents with storage',
   description:
     'Synchronize document metadata with actual files in storage. Adds new files and removes documents for deleted files.',
+  request: {
+    body: {
+      required: false,
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              directories: z
+                .array(z.string().min(1))
+                .max(50)
+                .optional()
+                .openapi({
+                  description:
+                    'Absolute or ~-prefixed directories to scan. Falls back to default when omitted.',
+                  example: ['/Users/example/zettelkasten', '~/second/notes'],
+                }),
+            })
+            .optional(),
+        },
+      },
+    },
+  },
   responses: {
     200: {
       description: 'Sync completed successfully',
@@ -436,6 +460,9 @@ const syncDocumentsRoute = createRoute({
                 .number()
                 .openapi({ example: 2, description: 'Number of documents removed' }),
               message: z.string().openapi({ example: 'Sync completed successfully' }),
+              directories: z
+                .array(z.string())
+                .openapi({ example: ['/Users/example/zettelkasten', '/Users/example/notes'] }),
             }),
             meta: z.object({
               timestamp: z.string().datetime(),
@@ -449,10 +476,44 @@ const syncDocumentsRoute = createRoute({
 });
 
 documents.openapi(syncDocumentsRoute, async (c) => {
-  return runEffectHandler(c, DocumentService.syncDocuments(), ({ added, removed }) =>
+  const body = c.req.valid('json') as { directories?: string[] } | undefined;
+
+  const normalizeDirectories = (dirs?: string[]) => {
+    if (!dirs || dirs.length === 0) return [];
+    return Array.from(
+      new Set(
+        dirs
+          .map((dir) => dir.trim())
+          .filter(Boolean)
+          .map((dir) => {
+            if (dir === '~') return os.homedir();
+            if (dir.startsWith('~/')) return path.join(os.homedir(), dir.slice(2));
+            return path.resolve(dir);
+          }),
+      ),
+    );
+  };
+
+  const directories = normalizeDirectories(body?.directories);
+  let scanDirectories = directories;
+
+  if (scanDirectories.length === 0) {
+    let storagePath = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage', 'documents');
+    if (storagePath.startsWith('~/')) {
+      storagePath = path.join(os.homedir(), storagePath.slice(2));
+    } else if (storagePath === '~') {
+      storagePath = os.homedir();
+    } else {
+      storagePath = path.resolve(storagePath);
+    }
+    scanDirectories = [storagePath];
+  }
+
+  return runEffectHandler(c, DocumentService.syncDocuments(scanDirectories), ({ added, removed }) =>
     successResponse(c, {
       added,
       removed,
+      directories: scanDirectories,
       message: 'Sync completed successfully',
     }),
   );

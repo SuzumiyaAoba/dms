@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { apiClient } from '@/shared/api';
 
 interface SyncButtonProps {
-  onSyncComplete?: () => void;
+  directories: string[];
+  onSyncComplete?: (directories: string[]) => void;
 }
 
-export function SyncButton({ onSyncComplete }: SyncButtonProps) {
+export function SyncButton({ directories, onSyncComplete }: SyncButtonProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
@@ -20,15 +21,15 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
     setMessage(null);
 
     try {
-      const result = await apiClient.syncDocuments();
+      const result = await apiClient.syncDocuments(directories);
       setMessage({
         type: 'success',
-        text: `同期完了: ${result.added}件追加、${result.removed}件削除`,
+        text: `同期完了: ${result.added}件追加、${result.removed}件削除（${result.directories.length}件のディレクトリを対象）`,
       });
 
       // Notify parent component
       if (onSyncComplete) {
-        onSyncComplete();
+        onSyncComplete(result.directories);
       }
     } catch (error) {
       setMessage({

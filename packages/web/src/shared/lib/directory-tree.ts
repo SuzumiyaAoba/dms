@@ -13,45 +13,78 @@ export interface TreeNode {
  * Extract relative path from full file path
  * Finds the common base directory and returns the relative path from there
  */
-function extractRelativePath(fullPath: string, baseName: string = 'org-roam'): string {
+function extractRelativePath(
+  fullPath: string,
+  baseDirectories: string[],
+): { relativePath: string; rootName: string } {
   const parts = fullPath.split('/');
-  const baseIndex = parts.indexOf(baseName);
 
-  if (baseIndex === -1) {
-    // Base not found, return last few parts
-    return parts.slice(-3).join('/');
+  const normalize = (dir: string) => dir.replace(/\/+$/, '');
+  const normalizedBases = baseDirectories.map(normalize);
+
+  for (const base of normalizedBases) {
+    if (!base) continue;
+    if (fullPath === base || fullPath.startsWith(`${base}/`)) {
+      const relative = fullPath.slice(base.length).replace(/^\/+/, '');
+      const baseName = base.split('/').filter(Boolean).pop() ?? base;
+      return {
+        relativePath: relative,
+        rootName: baseName,
+      };
+    }
   }
 
-  // Return everything after the base directory
-  return parts.slice(baseIndex + 1).join('/');
+  // Base not found, return last few parts with a generic root
+  const fallbackRoot = baseDirectories[0]?.split('/').filter(Boolean).pop() ?? 'Documents';
+  return {
+    relativePath: parts.slice(-3).join('/'),
+    rootName: fallbackRoot,
+  };
 }
 
 /**
  * Build a directory tree from a flat list of documents
  */
-export function buildDirectoryTree(documents: Document[]): TreeNode[] {
-  const root: TreeNode[] = [];
+export function buildDirectoryTree(
+  documents: Document[],
+  baseDirectories: string[] = [],
+): TreeNode[] {
+  const roots: TreeNode[] = [];
   const pathMap = new Map<string, TreeNode>();
+  const bases = baseDirectories.length > 0 ? baseDirectories : ['zettelkasten'];
 
   // Sort documents by file path for consistent tree building
   const sortedDocs = [...documents].sort((a, b) => a.fileUrl.localeCompare(b.fileUrl));
 
   for (const doc of sortedDocs) {
-    // Extract relative path from org-roam directory
-    const relativePath = extractRelativePath(doc.fileUrl);
+    const { relativePath, rootName } = extractRelativePath(doc.fileUrl, bases);
     const pathParts = relativePath.split('/').filter(Boolean);
 
     // Skip if path is too short
     if (pathParts.length === 0) continue;
 
+    const rootPath = rootName || 'root';
+    let rootNode = pathMap.get(rootPath);
+    if (!rootNode) {
+      rootNode = {
+        id: `root-${rootPath}`,
+        name: rootName || 'root',
+        type: 'directory',
+        path: rootPath,
+        children: [],
+      };
+      pathMap.set(rootPath, rootNode);
+      roots.push(rootNode);
+    }
+
     let currentPath = '';
-    let currentLevel = root;
+    let currentLevel = rootNode.children ?? [];
 
     // Build directory structure
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
       const isLastPart = i === pathParts.length - 1;
-      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      currentPath = currentPath ? `${currentPath}/${part}` : `${rootPath}/${part}`;
 
       // Check if node already exists
       let node = pathMap.get(currentPath);
@@ -59,7 +92,7 @@ export function buildDirectoryTree(documents: Document[]): TreeNode[] {
       if (!node) {
         // Create new node
         node = {
-          id: doc.fileUrl,
+          id: isLastPart ? doc.fileUrl : currentPath,
           name: part,
           type: isLastPart ? 'file' : 'directory',
           path: currentPath,
@@ -78,7 +111,7 @@ export function buildDirectoryTree(documents: Document[]): TreeNode[] {
     }
   }
 
-  return root;
+  return roots;
 }
 
 /**

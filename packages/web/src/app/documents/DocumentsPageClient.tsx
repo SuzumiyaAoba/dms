@@ -49,7 +49,7 @@ export function DocumentsPageClient({ documents, error, page }: DocumentsPageCli
             </p>
           )}
         </div>
-        <SyncButton onSyncComplete={handleSyncComplete} />
+        <SyncButton directories={[]} onSyncComplete={() => handleSyncComplete()} />
       </div>
 
       {error ? (

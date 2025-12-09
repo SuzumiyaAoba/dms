@@ -248,7 +248,9 @@ export namespace DocumentService {
    *
    * @returns Object containing counts of added and removed documents
    */
-  export function syncDocuments(): Effect.Effect<
+  export function syncDocuments(
+    directories?: string[],
+  ): Effect.Effect<
     { added: number; removed: number },
     AppError,
     StorageAdapter | DocumentRepositoryService
@@ -267,7 +269,7 @@ export namespace DocumentService {
       const files = yield* Effect.promise(() =>
         (
           storageAdapter as unknown as {
-            scanExistingFiles: () => Promise<
+            scanExistingFiles: (dirs?: string[]) => Promise<
               Array<{
                 fileName: string;
                 filePath: string;
@@ -277,7 +279,7 @@ export namespace DocumentService {
               }>
             >;
           }
-        ).scanExistingFiles(),
+        ).scanExistingFiles(directories),
       );
 
       // Get all documents from repository

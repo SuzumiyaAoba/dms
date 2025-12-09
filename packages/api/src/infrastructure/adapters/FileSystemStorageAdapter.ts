@@ -9,6 +9,7 @@
 
 import { randomBytes } from 'node:crypto';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import {
   FileNotFoundError,
@@ -197,7 +198,7 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
    *
    * Returns all files found in the storage directory.
    */
-  async scanExistingFiles(): Promise<
+  async scanExistingFiles(directories?: string[]): Promise<
     Array<{
       fileName: string;
       filePath: string;
@@ -214,56 +215,79 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
       modifiedAt: Date;
     }> = [];
 
-    try {
-      // Recursively scan all files in basePath
-      const scanDirectory = async (dir: string): Promise<void> => {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
+    const normalizeDirectory = (dir: string) => {
+      if (!dir) return null;
+      if (dir === '~') return os.homedir();
+      if (dir.startsWith('~/')) return path.join(os.homedir(), dir.slice(2));
+      return path.resolve(dir);
+    };
 
-        for (const entry of entries) {
-          const fullPath = path.join(dir, entry.name);
+    const targetDirectories =
+      directories && directories.length > 0
+        ? directories
+            .map((dir) => normalizeDirectory(dir))
+            .filter((dir): dir is string => Boolean(dir))
+        : [this.basePath];
 
-          if (entry.isDirectory()) {
-            // Skip metadata directories and hidden directories
-            if (!entry.name.startsWith('.')) {
-              await scanDirectory(fullPath);
+    const uniqueDirectories = Array.from(new Set(targetDirectories));
+
+    const scanDirectory = async (dir: string): Promise<void> => {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          // Skip metadata directories and hidden directories
+          if (!entry.name.startsWith('.')) {
+            await scanDirectory(fullPath);
+          }
+        } else if (entry.isFile()) {
+          // Skip metadata files and hidden files
+          if (!entry.name.endsWith('.meta.json') && !entry.name.startsWith('.')) {
+            const stats = await fs.stat(fullPath);
+            const ext = path.extname(entry.name).toLowerCase();
+
+            // Detect mime type based on extension
+            let mimeType = 'application/octet-stream';
+            if (ext === '.org') {
+              mimeType = 'text/org';
+            } else if (ext === '.md') {
+              mimeType = 'text/markdown';
+            } else if (ext === '.txt') {
+              mimeType = 'text/plain';
+            } else if (ext === '.pdf') {
+              mimeType = 'application/pdf';
             }
-          } else if (entry.isFile()) {
-            // Skip metadata files and hidden files
-            if (!entry.name.endsWith('.meta.json') && !entry.name.startsWith('.')) {
-              const stats = await fs.stat(fullPath);
-              const ext = path.extname(entry.name).toLowerCase();
 
-              // Detect mime type based on extension
-              let mimeType = 'application/octet-stream';
-              if (ext === '.org') {
-                mimeType = 'text/org';
-              } else if (ext === '.md') {
-                mimeType = 'text/markdown';
-              } else if (ext === '.txt') {
-                mimeType = 'text/plain';
-              } else if (ext === '.pdf') {
-                mimeType = 'application/pdf';
-              }
-
-              files.push({
-                fileName: entry.name,
-                filePath: fullPath,
-                fileSize: stats.size,
-                mimeType,
-                modifiedAt: stats.mtime,
-              });
-            }
+            files.push({
+              fileName: entry.name,
+              filePath: fullPath,
+              fileSize: stats.size,
+              mimeType,
+              modifiedAt: stats.mtime,
+            });
           }
         }
-      };
+      }
+    };
 
-      await scanDirectory(this.basePath);
-      logger.info({ count: files.length, basePath: this.basePath }, 'Scanned existing files');
-      return files;
-    } catch (error) {
-      logger.error({ error, basePath: this.basePath }, 'Failed to scan existing files');
-      return [];
+    for (const dir of uniqueDirectories) {
+      try {
+        const stats = await fs.stat(dir);
+        if (!stats.isDirectory()) {
+          logger.warn({ path: dir }, 'Skip scanning because path is not a directory');
+          continue;
+        }
+        await scanDirectory(dir);
+        logger.info({ basePath: dir }, 'Scanned directory for existing files');
+      } catch (error) {
+        logger.warn({ error, basePath: dir }, 'Failed to scan directory');
+      }
     }
+
+    logger.info({ count: files.length, basePaths: uniqueDirectories }, 'Scanned existing files');
+    return files;
   }
 
   /**
