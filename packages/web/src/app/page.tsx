@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
-import { SyncButton } from '@/features/document-sync';
 import { apiClient } from '@/shared/api';
 import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
 import type { Document } from '@/shared/model';
@@ -22,7 +21,7 @@ function HomeContent() {
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { directories, effectiveDirectories, setDirectories } = useSyncDirectories();
+  const { effectiveDirectories } = useSyncDirectories();
 
   // Load documents function
   const loadDocuments = React.useCallback(() => {
@@ -103,13 +102,6 @@ function HomeContent() {
     }
   };
 
-  const handleSyncComplete = (directories: string[]) => {
-    if (directories.length > 0) {
-      setDirectories(directories);
-    }
-    loadDocuments();
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -122,45 +114,24 @@ function HomeContent() {
     <DocumentLayout
       sidebarHeader={
         <div className="space-y-3">
-          <div className="space-y-2 rounded-md border border-border bg-card p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">同期対象ディレクトリ</p>
-              </div>
-              <Link href="/settings" aria-label="設定を開く">
-                <span className="inline-flex items-center justify-center rounded-md border border-border bg-muted p-2 hover:bg-muted/80 transition">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </span>
-              </Link>
+          <div className="flex items-center justify-between gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="ファイル名を検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {effectiveDirectories.map((dir) => (
-                <span
-                  key={dir}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-2 py-1 text-xs"
-                >
-                  <span className="max-w-[220px] truncate" title={dir}>
-                    {dir}
-                  </span>
-                </span>
-              ))}
-              {directories.length === 0 && (
-                <span className="text-xs text-muted-foreground">
-                  未指定の場合は既定のストレージパスを使用します
-                </span>
-              )}
-            </div>
-            <SyncButton directories={effectiveDirectories} onSyncComplete={handleSyncComplete} />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="ファイル名を検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+            <Link
+              href="/settings"
+              aria-label="設定を開く"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-muted p-2 hover:bg-muted/80 transition"
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </Link>
           </div>
           {searchQuery && (
             <p className="text-xs text-muted-foreground">

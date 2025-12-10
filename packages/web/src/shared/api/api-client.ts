@@ -113,10 +113,8 @@ export class ApiClient {
 
     // Try to parse as error response first
     const errorResult = ApiErrorResponseSchema.safeParse(json);
-    console.log('Error parse result:', errorResult);
     if (errorResult.success) {
       const errorData = errorResult.data;
-      console.error('API Error:', errorData.error);
       throw new ApiClientError(
         errorData.error.message,
         errorData.error.code,
@@ -127,7 +125,6 @@ export class ApiClient {
     // Parse as paginated response with Zod
     const parseResult = PaginatedApiResponseSchema(DocumentSchema).safeParse(json);
     if (!parseResult.success) {
-      console.error('Schema validation failed:', parseResult.error);
       throw new Error(`Failed to parse API response: ${parseResult.error.message}`);
     }
 

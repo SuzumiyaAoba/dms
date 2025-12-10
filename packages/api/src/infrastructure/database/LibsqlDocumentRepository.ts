@@ -184,7 +184,23 @@ export class LibsqlDocumentRepository implements IDocumentRepository {
         try: () =>
           this.client.execute({
             sql: `
-            SELECT * FROM documents
+            SELECT
+              id,
+              title,
+              description,
+              tags,
+              metadata,
+              file_url,
+              file_name,
+              file_size,
+              mime_type,
+              NULL as extracted_text,
+              embedding_id,
+              status,
+              created_at,
+              updated_at,
+              deleted_at
+            FROM documents
             WHERE deleted_at IS NULL
             ORDER BY created_at DESC
             LIMIT ? OFFSET ?
