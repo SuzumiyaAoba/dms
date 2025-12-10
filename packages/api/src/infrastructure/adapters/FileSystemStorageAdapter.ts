@@ -28,6 +28,8 @@ import { logger } from '@/utils/logger';
  * Stores files in a local directory with organized subdirectories.
  */
 export class FileSystemStorageAdapter implements IStorageAdapter {
+  private initialized = false;
+
   /**
    * Create a new file system storage adapter
    *
@@ -42,9 +44,14 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
    * Should be called before using the adapter.
    */
   async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
     try {
       await fs.mkdir(this.basePath, { recursive: true });
       logger.info({ basePath: this.basePath }, 'File system storage initialized');
+      this.initialized = true;
     } catch (error) {
       logger.error({ error, basePath: this.basePath }, 'Failed to initialize storage');
       throw error;

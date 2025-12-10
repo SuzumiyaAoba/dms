@@ -16,15 +16,14 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = '127.0.0.1';
 
 // Preferred port for web server
 const preferredPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 // Read API port from .env.port file (with retry logic)
 const apiEnvPortPath = join(__dirname, '../api/.env.port');
-const fallbackApiPort = 3000; // Align with API default
-const maxWaitTime = 10000; // 10 seconds
+const maxWaitTime = 5000; // 5 seconds timeout for detecting API server
 const checkInterval = 500; // 500ms
 const staleFileThreshold = 30000; // 30 seconds
 
@@ -72,7 +71,7 @@ function readApiPortFromFile() {
  */
 async function isApiReachable(port) {
   try {
-    const response = await fetch(`http://localhost:${port}/health`, {
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
       signal: AbortSignal.timeout(1500),
     });
     return response.ok;
@@ -109,21 +108,38 @@ async function resolveApiPort() {
   }
 
   console.warn(
-    `[Web Server] Could not determine API port (${lastError || 'no .env.port found'}), falling back to ${fallbackApiPort}`,
+    `[Web Server] Could not determine API port (${lastError || 'no .env.port found'}), falling back to 3001`,
   );
-  return fallbackApiPort;
+  return 3001;
 }
 
-const apiPort = await resolveApiPort();
+let apiPort = await resolveApiPort();
 
-// Set API URL environment variables for Next.js
-process.env.NEXT_PUBLIC_API_URL = `http://localhost:${apiPort}/api/v1`;
-process.env.API_URL = `http://localhost:${apiPort}/api/v1`;
+// Configure API URLs: client uses same-origin /api/v1, server-side fetch uses API_URL.
+if (apiPort) {
+  process.env.API_URL = `http://127.0.0.1:${apiPort}/api/v1`;
+  delete process.env.NEXT_PUBLIC_API_URL;
+  console.log(`[Web Server] API URL (server-side): ${process.env.API_URL}`);
+} else {
+  delete process.env.API_URL;
+  delete process.env.NEXT_PUBLIC_API_URL;
+  console.error('[Web Server] API server not reachable. API proxy disabled.');
+}
 
-console.log(`[Web Server] API URL: ${process.env.NEXT_PUBLIC_API_URL}`);
+// Get available port for web server.
+// If API also wants 3000, prefer the next port to avoid binding the same.
+const portCandidates = apiPort && preferredPort === apiPort
+  ? [preferredPort + 1, preferredPort + 2, preferredPort + 3]
+  : preferredPort;
+const port = await getPort({ port: portCandidates, host: hostname });
 
-// Get available port for web server
-const port = await getPort({ port: preferredPort, host: hostname });
+// Avoid self-proxy: if API port equals web port, disable proxy to prevent loops
+if (apiPort && apiPort === port) {
+  console.warn(
+    `[Web Server] API port (${apiPort}) is the same as web port (${port}). Disabling API proxy.`,
+  );
+  apiPort = null;
+}
 
 if (port !== preferredPort) {
   console.log(`[Web Server] Port ${preferredPort} is occupied, using ${port} instead`);
@@ -135,20 +151,32 @@ const handle = app.getRequestHandler();
 
 await app.prepare();
 
-// Create API proxy middleware
-const apiProxy = createProxyMiddleware({
-  target: `http://localhost:${apiPort}`,
-  changeOrigin: true,
-  pathFilter: '/api/v1/**',
-  logLevel: 'silent',
-});
+// Create API proxy middleware (only when API is reachable)
+const apiProxy = apiPort
+  ? createProxyMiddleware({
+      target: `http://127.0.0.1:${apiPort}`,
+      changeOrigin: true,
+      pathFilter: '/api/v1/**',
+      logLevel: 'silent',
+      onError(err, _req, res) {
+        console.error('[Web Server] API proxy error', err?.message || err);
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'API proxy unavailable' }));
+      },
+    })
+  : null;
 
 // Create HTTP server
 createServer(async (req, res) => {
   try {
     // Proxy API requests
     if (req.url?.startsWith('/api/v1')) {
-      apiProxy(req, res);
+      if (apiProxy) {
+        apiProxy(req, res);
+      } else {
+        res.statusCode = 503;
+        res.end('API server unavailable');
+      }
       return;
     }
 
@@ -162,5 +190,9 @@ createServer(async (req, res) => {
 }).listen(port, hostname, () => {
   console.log(`[Web Server] Ready on http://${hostname}:${port}`);
   console.log(`[Web Server] Environment: ${dev ? 'development' : 'production'}`);
-  console.log(`[Web Server] API proxy enabled: /api/v1 -> http://localhost:${apiPort}`);
+  if (apiProxy && apiPort) {
+    console.log(`[Web Server] API proxy enabled: /api/v1 -> http://localhost:${apiPort}`);
+  } else {
+    console.log('[Web Server] API proxy disabled (API not reachable)');
+  }
 });

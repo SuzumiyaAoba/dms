@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS documents (
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_deleted_at ON documents(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_documents_deleted_at_created_at ON documents(deleted_at, created_at DESC);
 
 -- Full-text search index (if needed later)
 -- CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(

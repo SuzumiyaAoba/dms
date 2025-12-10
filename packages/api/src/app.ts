@@ -10,8 +10,9 @@
 
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { logger as honoLogger } from 'hono/logger';
+import { env } from '@/config/env';
 import { makeAppLayer } from '@/config/layers';
 import { cors } from '@/middleware/cors';
 import { errorHandler } from '@/middleware/errorHandler';
@@ -60,10 +61,27 @@ const app = new OpenAPIHono();
 
 // Initialize application layer
 const appLayer = makeAppLayer();
+// Build runtime once (async) and keep scope open for the lifetime of the process
+let appRuntime: Awaited<ReturnType<typeof Layer.toRuntime>> | null = null;
+const appRuntimePromise = Effect.runPromise(Layer.toRuntime(appLayer).pipe(Effect.scoped));
+
+const getAppRuntime = async () => {
+  if (!appRuntime) {
+    appRuntime = await appRuntimePromise;
+  }
+  return appRuntime;
+};
 
 // Middleware to inject app layer into context
 app.use('*', async (c, next) => {
   c.set('appLayer', appLayer);
+  try {
+    const runtime = await getAppRuntime();
+    c.set('appRuntime', runtime);
+  } catch (error) {
+    logger.error({ error }, 'Failed to initialize app runtime');
+    throw error;
+  }
   await next();
 });
 
@@ -107,15 +125,19 @@ app.get(
 // 404 handler
 app.notFound(notFound);
 
-// Initialize by importing existing files
-(async () => {
-  try {
-    const importEffect = DocumentService.importExistingFiles();
-    const result = await Effect.runPromise(importEffect.pipe(Effect.provide(appLayer)));
-    logger.info({ importedCount: result }, 'Existing files imported');
-  } catch (error) {
-    logger.error({ error }, 'Failed to import existing files');
-  }
-})();
+// Initialize by importing existing files (opt-in)
+if (env.IMPORT_EXISTING_FILES_ON_STARTUP) {
+  (async () => {
+    try {
+      const importEffect = DocumentService.importExistingFiles();
+      const result = await Effect.runPromise(importEffect.pipe(Effect.provide(appLayer)));
+      logger.info({ importedCount: result }, 'Existing files imported');
+    } catch (error) {
+      logger.error({ error }, 'Failed to import existing files');
+    }
+  })();
+} else {
+  logger.info('Skipping import of existing files on startup');
+}
 
 export default app;

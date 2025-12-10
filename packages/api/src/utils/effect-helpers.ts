@@ -6,7 +6,7 @@
  * @module utils/effect-helpers
  */
 
-import { Effect, Either } from 'effect';
+import { Effect, Either, Runtime } from 'effect';
 import type { Context } from 'hono';
 import type { AppError } from '@/utils/effect-errors';
 import { logger } from '@/utils/logger';
@@ -69,16 +69,25 @@ export async function runEffectHandler<A, E extends AppError, R>(
   effect: Effect.Effect<A, E, R>,
   onSuccess: (result: A) => Response | Promise<Response>,
 ): Promise<Response> {
-  // Get the app layer from context (will be set by middleware)
+  // Get the app runtime (preferred) or layer from context (fallback)
+  const appRuntime = c.get('appRuntime') as Runtime.Runtime<unknown> | undefined;
   const appLayer = c.get('appLayer');
 
-  const result = await Effect.runPromise(
-    effect.pipe(Effect.provide(appLayer), Effect.either) as Effect.Effect<
-      Either.Either<A, E>,
-      never,
-      never
-    >,
-  );
+  const run = async () => {
+    if (appRuntime) {
+      return Runtime.runPromise(appRuntime, effect.pipe(Effect.either));
+    }
+
+    return Effect.runPromise(
+      effect.pipe(Effect.provide(appLayer), Effect.either) as Effect.Effect<
+        Either.Either<A, E>,
+        never,
+        never
+      >,
+    );
+  };
+
+  const result = await run();
 
   if (Either.isLeft(result)) {
     return errorResponse(c, result.left as AppError);

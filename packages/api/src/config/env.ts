@@ -24,7 +24,7 @@ const envSchema = z.object({
   /** Application environment (development, production, or test) */
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   /** Server port number */
-  PORT: z.string().default('3000').transform(Number),
+  PORT: z.string().default('3001').transform(Number),
   /** Server host address */
   HOST: z.string().default('0.0.0.0'),
 
@@ -43,6 +43,17 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   /** LibSQL auth token for remote connections */
   DATABASE_AUTH_TOKEN: z.string().optional(),
+
+  // Startup behavior
+  /**
+   * Whether to import existing files from storage on startup.
+   * Scans the storage directory, so keep disabled by default to avoid slow boot.
+   */
+  IMPORT_EXISTING_FILES_ON_STARTUP: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 /**

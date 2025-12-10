@@ -26,10 +26,17 @@ function HomeContent() {
   // Load documents function
   const loadDocuments = React.useCallback(() => {
     setIsLoading(true);
+    const startedAt = performance.now();
+    // Debug: log when the initial list API responds
     apiClient
       .listDocuments(1, 100)
       .then((response) => {
         setDocuments(response.items);
+        const duration = Math.round(performance.now() - startedAt);
+        // eslint-disable-next-line no-console
+        console.log(
+          `[dms-debug] listDocuments completed at ${new Date().toISOString()} (${duration}ms)`,
+        );
       })
       .catch((error) => {
         console.error('Failed to load documents:', error);
@@ -45,7 +52,12 @@ function HomeContent() {
   }, [loadDocuments]);
 
   useEffect(() => {
-    setTreeNodes(buildDirectoryTree(documents, effectiveDirectories));
+    const treeStart = performance.now();
+    const built = buildDirectoryTree(documents, effectiveDirectories);
+    setTreeNodes(built);
+    const duration = Math.round(performance.now() - treeStart);
+    // eslint-disable-next-line no-console
+    console.log(`[dms-debug] directory tree built at ${new Date().toISOString()} (${duration}ms)`);
   }, [documents, effectiveDirectories]);
 
   // Load selected document from URL

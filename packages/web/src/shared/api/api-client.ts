@@ -98,6 +98,7 @@ export class ApiClient {
     items: Document[];
     pagination: PaginatedApiResponse<Document>['data']['pagination'];
   }> {
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const url = new URL(`${this.baseUrl}/documents`);
     url.searchParams.set('page', page.toString());
     url.searchParams.set('limit', limit.toString());
@@ -110,6 +111,11 @@ export class ApiClient {
     });
 
     const json: unknown = await response.json();
+    const duration = typeof performance !== 'undefined' ? performance.now() - startedAt : 0;
+    // eslint-disable-next-line no-console
+    console.log(
+      `[dms-debug] apiClient.listDocuments response at ${new Date().toISOString()} (${Math.round(duration)}ms) from ${url.toString()} status=${response.status}`,
+    );
 
     // Try to parse as error response first
     const errorResult = ApiErrorResponseSchema.safeParse(json);
