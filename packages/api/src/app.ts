@@ -11,7 +11,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { Effect, Layer } from 'effect';
-import { logger as honoLogger } from 'hono/logger';
 import { env } from '@/config/env';
 import { makeAppLayer } from '@/config/layers';
 import { cors } from '@/middleware/cors';
@@ -28,9 +27,9 @@ import { logger } from '@/utils/logger';
  *
  * Configured with the following middleware stack (in order):
  * 1. **Hono built-in logger** - Console logging for development
- * 2. **Custom logger middleware** - Structured logging with request IDs
- * 3. **CORS middleware** - Cross-origin resource sharing configuration
- * 4. **Error handler** - Centralized error handling and response formatting
+ * 1. **Custom logger middleware** - Structured logging with request IDs (pino)
+ * 2. **CORS middleware** - Cross-origin resource sharing configuration
+ * 3. **Error handler** - Centralized error handling and response formatting
  *
  * Routes are mounted as follows:
  * - Health check routes at `/health` (no API prefix)
@@ -43,8 +42,6 @@ import { logger } from '@/utils/logger';
  * Middleware execution order for a request:
  * ```
  * Request
- *   ↓
- * honoLogger (console log)
  *   ↓
  * loggerMiddleware (structured log + request ID)
  *   ↓
@@ -86,7 +83,6 @@ app.use('*', async (c, next) => {
 });
 
 // Global middleware
-app.use('*', honoLogger());
 app.use('*', loggerMiddleware);
 app.use('*', cors);
 app.use('*', errorHandler);
