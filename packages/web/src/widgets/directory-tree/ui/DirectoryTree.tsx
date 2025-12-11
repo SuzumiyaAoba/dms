@@ -1,16 +1,7 @@
 'use client';
 
-import {
-  Archive,
-  ChevronRight,
-  FileCode,
-  FileText,
-  FileType,
-  Folder,
-  FolderOpen,
-  Image,
-  NotebookPen,
-} from 'lucide-react';
+import { Icon } from '@iconify/react';
+import { Archive, ChevronRight, FileCode, FileText, Folder, FolderOpen, Image } from 'lucide-react';
 import * as React from 'react';
 import type { TreeNode } from '@/shared/lib/directory-tree';
 import { cn } from '@/shared/lib/utils';
@@ -39,10 +30,22 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
   const iconForFile = () => {
     const ext = node.name.toLowerCase().split('.').pop() || '';
     if (['md', 'mdown', 'markdown'].includes(ext)) {
-      return <FileType className="h-4 w-4 shrink-0 text-muted-foreground" />;
+      return (
+        <Icon
+          icon="vscode-icons:file-type-markdown"
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+      );
     }
     if (ext === 'org') {
-      return <NotebookPen className="h-4 w-4 shrink-0 text-muted-foreground" />;
+      return (
+        <Icon
+          icon="vscode-icons:file-type-org"
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+      );
     }
     if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext)) {
       return <Image className="h-4 w-4 shrink-0 text-muted-foreground" />;

@@ -19,6 +19,7 @@
     "@dms/core": "workspace:*",
     "@iarna/toml": "^2.2.5",
     "@tailwindcss/typography": "^0.5.19",
+    "@iconify/react": "^6.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "http-proxy-middleware": "^3.0.5",
