@@ -8,6 +8,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { DocumentViewer } from '@/entities/document';
 import { apiClient } from '@/shared/api';
 import { buildDirectoryTree, type TreeNode } from '@/shared/lib/directory-tree';
+import { logError, logInfo } from '@/shared/lib/logger';
 import type { Document } from '@/shared/model';
 import { useSyncDirectories } from '@/shared/providers/sync-directories';
 import { DirectoryTree } from '@/widgets/directory-tree';
@@ -42,13 +43,13 @@ function HomeContent() {
       .then((response) => {
         setDocuments(response.items);
         const duration = Math.round(performance.now() - startedAt);
-        // eslint-disable-next-line no-console
-        console.log(
-          `[dms-debug] listDocuments completed at ${new Date().toISOString()} (${duration}ms)`,
-        );
+        logInfo('documents.load.completed', {
+          durationMs: duration,
+          count: response.items.length,
+        });
       })
       .catch((error) => {
-        console.error('Failed to load documents:', error);
+        logError('documents.load.failed', error);
       })
       .finally(() => {
         setIsLoading(false);
@@ -75,8 +76,10 @@ function HomeContent() {
     const built = buildDirectoryTree(documents, effectiveDirectories);
     setTreeNodes(built);
     const duration = Math.round(performance.now() - treeStart);
-    // eslint-disable-next-line no-console
-    console.log(`[dms-debug] directory tree built at ${new Date().toISOString()} (${duration}ms)`);
+    logInfo('directoryTree.built', {
+      durationMs: duration,
+      nodeCount: built.length,
+    });
   }, [documents, effectiveDirectories]);
 
   // Load selected document from URL

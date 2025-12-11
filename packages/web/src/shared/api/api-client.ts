@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { logError, logInfo } from '@/shared/lib/logger';
 import type {
   CreateDocumentInput,
   Document,
@@ -112,15 +113,21 @@ export class ApiClient {
 
     const json: unknown = await response.json();
     const duration = typeof performance !== 'undefined' ? performance.now() - startedAt : 0;
-    // eslint-disable-next-line no-console
-    console.log(
-      `[dms-debug] apiClient.listDocuments response at ${new Date().toISOString()} (${Math.round(duration)}ms) from ${url.toString()} status=${response.status}`,
-    );
+    logInfo('apiClient.listDocuments.response', {
+      url: url.toString(),
+      status: response.status,
+      durationMs: Math.round(duration),
+    });
 
     // Try to parse as error response first
     const errorResult = ApiErrorResponseSchema.safeParse(json);
     if (errorResult.success) {
       const errorData = errorResult.data;
+      logError('apiClient.listDocuments.error', errorData.error, {
+        status: response.status,
+        url: url.toString(),
+        durationMs: Math.round(duration),
+      });
       throw new ApiClientError(
         errorData.error.message,
         errorData.error.code,
