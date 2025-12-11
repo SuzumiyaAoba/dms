@@ -18,6 +18,7 @@ interface TableOfContentsProps {
 /**
  * Clean org-mode syntax from text
  * - Remove org-mode links: [[url][description]] -> description
+ * - Remove markdown links: [text](url) -> text
  * - Remove bold/italic markers: *text*, /text/, _text_ -> text
  */
 function cleanOrgText(text: string): string {
@@ -28,6 +29,9 @@ function cleanOrgText(text: string): string {
 
   // Replace org-mode links [[url]] with just url
   cleaned = cleaned.replace(/\[\[([^\]]+)\]\]/g, '$1');
+
+  // Replace markdown links [text](url) with text
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
   // Remove bold markers
   cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1');

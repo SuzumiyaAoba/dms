@@ -20,12 +20,21 @@ function HomeContent() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { effectiveDirectories } = useSyncDirectories();
+  const loadingTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load documents function
   const loadDocuments = React.useCallback(() => {
     setIsLoading(true);
+    setShowLoading(false);
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+    }
+    loadingTimerRef.current = setTimeout(() => {
+      setShowLoading(true);
+    }, 200);
     const startedAt = performance.now();
     // Debug: log when the initial list API responds
     apiClient
@@ -43,12 +52,22 @@ function HomeContent() {
       })
       .finally(() => {
         setIsLoading(false);
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+          loadingTimerRef.current = null;
+        }
+        setShowLoading(false);
       });
   }, []);
 
   // Load documents on mount
   useEffect(() => {
     loadDocuments();
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
   }, [loadDocuments]);
 
   useEffect(() => {
@@ -114,7 +133,7 @@ function HomeContent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && showLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-muted-foreground">読み込み中...</p>
