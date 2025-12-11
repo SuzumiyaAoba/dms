@@ -1,3 +1,5 @@
+import pino from 'pino';
+
 type LogLevel = 'info' | 'error';
 
 type Serializable =
@@ -20,21 +22,17 @@ function serializeError(error: unknown): Record<string, Serializable> {
   return { message: String(error) };
 }
 
+const logger = pino({
+  level: process.env.NEXT_PUBLIC_LOG_LEVEL || 'info',
+  base: undefined,
+  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+});
+
 function log(level: LogLevel, event: string, data?: Record<string, Serializable>) {
-  const payload = {
-    level,
+  logger[level]({
     event,
-    timestamp: new Date().toISOString(),
     ...data,
-  };
-  const line = JSON.stringify(payload);
-  if (level === 'error') {
-    // eslint-disable-next-line no-console
-    console.error(line);
-  } else {
-    // eslint-disable-next-line no-console
-    console.log(line);
-  }
+  });
 }
 
 export function logInfo(event: string, data?: Record<string, Serializable>) {

@@ -45,7 +45,8 @@
     "zod": "^4.1.11",
     "remark-gfm": "^4.0.0",
     "remark-join-cjk-lines": "^1.0.14",
-    "remark-rehype": "^11.1.2"
+    "remark-rehype": "^11.1.2",
+    "pino": "^10.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

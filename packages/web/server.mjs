@@ -18,16 +18,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '127.0.0.1';
 
+const pino = (await import('pino')).default;
+const log = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: undefined,
+  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+});
+
 const logStructured = (level, event, data = {}) => {
-  const payload = {
-    level,
+  log[level]({
     event,
-    timestamp: new Date().toISOString(),
     ...data,
-  };
-  const line = JSON.stringify(payload);
-  // eslint-disable-next-line no-console
-  (level === 'error' ? console.error : console.log)(line);
+  });
 };
 
 // Preferred port for web server
