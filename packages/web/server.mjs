@@ -18,6 +18,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '127.0.0.1';
 
+const logStructured = (level, event, data = {}) => {
+  const payload = {
+    level,
+    event,
+    timestamp: new Date().toISOString(),
+    ...data,
+  };
+  const line = JSON.stringify(payload);
+  // eslint-disable-next-line no-console
+  (level === 'error' ? console.error : console.log)(line);
+};
+
 // Preferred port for web server
 const preferredPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
@@ -159,7 +171,9 @@ const apiProxy = apiPort
       pathFilter: '/api/v1/**',
       logLevel: 'silent',
       onError(err, _req, res) {
-        console.error('[Web Server] API proxy error', err?.message || err);
+        logStructured('error', 'api.proxy.error', {
+          message: err?.message || 'proxy error',
+        });
         res.writeHead(503, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: 'API proxy unavailable' }));
       },
@@ -168,6 +182,19 @@ const apiProxy = apiPort
 
 // Create HTTP server
 createServer(async (req, res) => {
+  const startedAt = Date.now();
+  const { method = 'GET', url = '' } = req;
+  const logAccess = () => {
+    logStructured('info', 'http.access', {
+      method,
+      url,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
+  };
+  res.on('finish', logAccess);
+  res.on('close', logAccess);
+
   try {
     // Proxy API requests
     if (req.url?.startsWith('/api/v1')) {
@@ -183,7 +210,12 @@ createServer(async (req, res) => {
     const parsedUrl = parse(req.url, true);
     await handle(req, res, parsedUrl);
   } catch (err) {
-    console.error('Error occurred handling', req.url, err);
+    logStructured('error', 'http.error', {
+      method,
+      url,
+      message: err?.message || 'Unknown error',
+      stack: err?.stack,
+    });
     res.statusCode = 500;
     res.end('internal server error');
   }
