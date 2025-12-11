@@ -2,6 +2,7 @@
 
 import toml from '@iarna/toml';
 import yaml from 'js-yaml';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import * as prod from 'react/jsx-runtime';
 import rehypeGithubEmoji, { type Build as EmojiBuild } from 'rehype-github-emoji';
@@ -96,7 +97,7 @@ function CollapsibleHeading({
         className="flex-shrink-0 hover:opacity-70 transition-opacity cursor-pointer p-1"
         aria-label={isCollapsed ? '展開' : '折り畳み'}
       >
-        {isCollapsed ? '▶' : '▼'}
+        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
     </Tag>
   );
