@@ -1,7 +1,7 @@
 'use client';
 
 import { FileText } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { apiClient } from '@/shared/api';
 import { cn } from '@/shared/lib/utils';
 import type { Document } from '@/shared/model';
@@ -18,10 +18,12 @@ interface DocumentViewerProps {
 type ViewTab = 'preview' | 'raw';
 
 export function DocumentViewer({ document, className }: DocumentViewerProps) {
-  const [content, setContent] = useState<string>('');
-  const [isLoadingContent, setIsLoadingContent] = useState(false);
-  const [contentError, setContentError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ViewTab>('preview');
+  const [content, setContent] = React.useState<string>('');
+  const [isLoadingContent, setIsLoadingContent] = React.useState(false);
+  const [showContentLoading, setShowContentLoading] = React.useState(false);
+  const [contentError, setContentError] = React.useState<string | null>(null);
+  const [activeTab, setActiveTab] = React.useState<ViewTab>('preview');
+  const contentLoadingTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Helper to determine if file is org-mode
   const isOrgFile = (fileName: string): boolean => {
@@ -33,13 +35,20 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
     return lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.mdown');
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!document) {
       setContent('');
       return;
     }
 
     setIsLoadingContent(true);
+    setShowContentLoading(false);
+    if (contentLoadingTimerRef.current) {
+      clearTimeout(contentLoadingTimerRef.current);
+    }
+    contentLoadingTimerRef.current = setTimeout(() => {
+      setShowContentLoading(true);
+    }, 200);
     setContentError(null);
 
     apiClient
@@ -53,8 +62,20 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
       })
       .finally(() => {
         setIsLoadingContent(false);
+        if (contentLoadingTimerRef.current) {
+          clearTimeout(contentLoadingTimerRef.current);
+          contentLoadingTimerRef.current = null;
+        }
+        setShowContentLoading(false);
       });
   }, [document]);
+  React.useEffect(() => {
+    return () => {
+      if (contentLoadingTimerRef.current) {
+        clearTimeout(contentLoadingTimerRef.current);
+      }
+    };
+  }, []);
 
   if (!document) {
     return (
@@ -139,7 +160,7 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
 
           {/* Content Section - Scrollable */}
           <div className="flex-1 overflow-y-auto">
-            {isLoadingContent ? (
+            {isLoadingContent && showContentLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-muted-foreground">読み込み中...</div>
               </div>
