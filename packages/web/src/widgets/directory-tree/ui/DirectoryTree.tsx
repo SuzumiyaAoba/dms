@@ -1,6 +1,16 @@
 'use client';
 
-import { ChevronRight, FileText, Folder, FolderOpen } from 'lucide-react';
+import {
+  Archive,
+  ChevronRight,
+  FileCode,
+  FileText,
+  FileType,
+  Folder,
+  FolderOpen,
+  Image,
+  NotebookPen,
+} from 'lucide-react';
 import * as React from 'react';
 import type { TreeNode } from '@/shared/lib/directory-tree';
 import { cn } from '@/shared/lib/utils';
@@ -25,6 +35,54 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedNodeId === node.id;
   const indentation = level * 16 + 8;
+
+  const iconForFile = () => {
+    const ext = node.name.toLowerCase().split('.').pop() || '';
+    if (['md', 'mdown', 'markdown'].includes(ext)) {
+      return <FileType className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    }
+    if (ext === 'org') {
+      return <NotebookPen className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    }
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext)) {
+      return <Image className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    }
+    if (['zip', 'tar', 'gz', 'tgz', 'bz2', '7z', 'rar'].includes(ext)) {
+      return <Archive className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    }
+    if (
+      [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'json',
+        'yml',
+        'yaml',
+        'toml',
+        'sh',
+        'bash',
+        'zsh',
+        'py',
+        'rs',
+        'go',
+        'java',
+        'c',
+        'cpp',
+        'h',
+        'hpp',
+        'cs',
+        'css',
+        'scss',
+        'sass',
+        'less',
+      ].includes(ext)
+    ) {
+      return <FileCode className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    }
+    // Markdown / org / text
+    return <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />;
+  };
 
   const handleClick = () => {
     if (node.type === 'directory') {
@@ -70,7 +128,7 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
             <Folder className="h-4 w-4 shrink-0 text-primary/70" />
           )
         ) : (
-          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+          iconForFile()
         )}
         <span className="truncate text-sm flex-1 min-w-0 text-left">{node.name}</span>
       </Button>
