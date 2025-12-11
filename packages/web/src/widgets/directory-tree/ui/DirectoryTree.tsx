@@ -87,6 +87,62 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
     return <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />;
   };
 
+  const displayName = React.useMemo(() => {
+    const knownExts = new Set([
+      'md',
+      'mdown',
+      'markdown',
+      'org',
+      'png',
+      'jpg',
+      'jpeg',
+      'gif',
+      'svg',
+      'webp',
+      'bmp',
+      'ico',
+      'zip',
+      'tar',
+      'gz',
+      'tgz',
+      'bz2',
+      '7z',
+      'rar',
+      'ts',
+      'tsx',
+      'js',
+      'jsx',
+      'json',
+      'yml',
+      'yaml',
+      'toml',
+      'sh',
+      'bash',
+      'zsh',
+      'py',
+      'rs',
+      'go',
+      'java',
+      'c',
+      'cpp',
+      'h',
+      'hpp',
+      'cs',
+      'css',
+      'scss',
+      'sass',
+      'less',
+    ]);
+    const parts = node.name.split('.');
+    if (parts.length > 1) {
+      const ext = parts.pop();
+      if (ext && knownExts.has(ext.toLowerCase())) {
+        return parts.join('.');
+      }
+    }
+    return node.name;
+  }, [node.name]);
+
   const handleClick = () => {
     if (node.type === 'directory') {
       setIsExpanded(!isExpanded);
@@ -133,7 +189,7 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
         ) : (
           iconForFile()
         )}
-        <span className="truncate text-sm flex-1 min-w-0 text-left">{node.name}</span>
+        <span className="truncate text-sm flex-1 min-w-0 text-left">{displayName}</span>
       </Button>
       {hasChildren && isExpanded && (
         <div className="relative mt-0.5">
