@@ -35,6 +35,12 @@ const envSchema = z.object({
   // Logging
   /** Log level (fatal, error, warn, info, debug, trace) */
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  /** Pretty print logs (use only for local debugging). Defaults to false for structured JSON. */
+  LOG_PRETTY: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true')
+    .optional(),
 
   // Database
   /** Database type (memory, libsql) */
