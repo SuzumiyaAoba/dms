@@ -2,9 +2,6 @@
 
 import toml from '@iarna/toml';
 import yaml from 'js-yaml';
-import katex from 'katex';
-import renderMathInElement from 'katex/contrib/auto-render';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import * as prod from 'react/jsx-runtime';
 import rehypeGithubEmoji, { type Build as EmojiBuild } from 'rehype-github-emoji';
@@ -15,12 +12,11 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkJoinCjkLines from 'remark-join-cjk-lines';
 import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
-import uniorgParse from 'uniorg-parse';
-import uniorg2rehype from 'uniorg-rehype';
 import { CollapsedContext } from './CollapsedContext';
 
-interface OrgPreviewProps {
+interface MarkdownPreviewProps {
   content: string;
   className?: string;
 }
@@ -100,62 +96,18 @@ function CollapsibleHeading({
         className="flex-shrink-0 hover:opacity-70 transition-opacity cursor-pointer p-1"
         aria-label={isCollapsed ? '展開' : '折り畳み'}
       >
-        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {isCollapsed ? '▶' : '▼'}
       </button>
     </Tag>
   );
 }
 
-export function OrgPreview({ content, className }: OrgPreviewProps) {
+export function MarkdownPreview({ content, className }: MarkdownPreviewProps) {
   const [renderedContent, setRenderedContent] = React.useState<React.ReactElement | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const { collapsedHeadings } = React.useContext(CollapsedContext);
   const contentRef = React.useRef<HTMLDivElement>(null);
-  const mathRenderedRef = React.useRef(false);
   const [frontmatter, setFrontmatter] = React.useState<Record<string, unknown> | null>(null);
-
-  // Render math (KaTeX) once per content render
-  React.useEffect(() => {
-    if (!contentRef.current || !renderedContent) return;
-
-    if (mathRenderedRef.current) return;
-
-    // Render math expressions using KaTeX
-    renderMathInElement(contentRef.current, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '\\[', right: '\\]', display: true },
-        { left: '\\begin{equation}', right: '\\end{equation}', display: true },
-        { left: '\\begin{equation*}', right: '\\end{equation*}', display: true },
-        { left: '\\begin{align}', right: '\\end{align}', display: true },
-        { left: '\\begin{align*}', right: '\\end{align*}', display: true },
-        { left: '$', right: '$', display: false },
-        { left: '\\(', right: '\\)', display: false },
-      ],
-      ignoredClasses: ['math', 'math-inline', 'math-display'],
-      throwOnError: false,
-      strict: false,
-    });
-
-    // Render Org-mode math nodes (.math-inline / .math-display) that come without delimiters
-    const mathNodes = contentRef.current.querySelectorAll('.math-inline, .math-display');
-    for (const node of Array.from(mathNodes)) {
-      const element = node as HTMLElement;
-      const tex = element.textContent || '';
-      const displayMode = element.classList.contains('math-display');
-      try {
-        katex.render(tex, element, {
-          displayMode,
-          throwOnError: false,
-          strict: false,
-        });
-      } catch (err) {
-        console.error('Failed to render math', err);
-      }
-    }
-
-    mathRenderedRef.current = true;
-  }, [renderedContent]);
 
   // Apply collapsed state to DOM elements
   React.useEffect(() => {
@@ -199,11 +151,10 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
   }, [collapsedHeadings, renderedContent]);
 
   React.useEffect(() => {
-    const parseOrgContent = async () => {
+    const parseMarkdownContent = async () => {
       try {
         const { data: parsedFrontmatter, body } = extractFrontmatter(content);
         setFrontmatter(parsedFrontmatter);
-        mathRenderedRef.current = false;
 
         const heading =
           (level: 1 | 2 | 3 | 4 | 5 | 6) =>
@@ -221,22 +172,26 @@ export function OrgPreview({ content, className }: OrgPreviewProps) {
         };
 
         const result = await unified()
-          .use(uniorgParse)
-          .use(uniorg2rehype)
+          .use(remarkParse)
+          .use(remarkFrontmatter, ['yaml', 'toml'])
+          .use(remarkGfm)
+          .use(remarkCjkFriendly)
+          .use(remarkJoinCjkLines)
+          .use(remarkRehype)
           .use(rehypeGithubEmoji, { build: emojiBuild })
-          .use(rehypeSlug) // Add IDs to headings
+          .use(rehypeSlug)
           .use(rehype2react, { ...prod, components })
           .process(body);
 
         setRenderedContent(result.result as React.ReactElement);
         setError(null);
       } catch (err) {
-        console.error('Failed to parse org content:', err);
-        setError('Failed to parse org-mode content');
+        console.error('Failed to parse markdown content:', err);
+        setError('Markdownの解析に失敗しました');
       }
     };
 
-    parseOrgContent();
+    parseMarkdownContent();
   }, [content]);
 
   if (error) {

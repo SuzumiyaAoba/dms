@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/utils';
 import type { Document } from '@/shared/model';
 import { TableOfContents } from '@/widgets/table-of-contents';
 import { CollapsedProvider } from './CollapsedContext';
+import { MarkdownPreview } from './MarkdownPreview';
 import { OrgPreview } from './OrgPreview';
 
 interface DocumentViewerProps {
@@ -25,6 +26,11 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
   // Helper to determine if file is org-mode
   const isOrgFile = (fileName: string): boolean => {
     return fileName.toLowerCase().endsWith('.org');
+  };
+  // Helper to determine if file is markdown
+  const isMarkdownFile = (fileName: string): boolean => {
+    const lower = fileName.toLowerCase();
+    return lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.mdown');
   };
 
   useEffect(() => {
@@ -146,6 +152,8 @@ export function DocumentViewer({ document, className }: DocumentViewerProps) {
                 {activeTab === 'preview' ? (
                   document && isOrgFile(document.fileName) ? (
                     <OrgPreview content={content} className="p-8" />
+                  ) : document && isMarkdownFile(document.fileName) ? (
+                    <MarkdownPreview content={content} className="p-8" />
                   ) : (
                     <div className="overflow-hidden">
                       <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono p-8 overflow-x-auto">

@@ -72,7 +72,7 @@ function TreeItem({ node, level, onNodeClick, selectedNodeId }: TreeItemProps) {
         ) : (
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
-        <span className="truncate text-sm">{node.name}</span>
+        <span className="truncate text-sm flex-1 min-w-0 text-left">{node.name}</span>
       </Button>
       {hasChildren && isExpanded && (
         <div className="relative mt-0.5">
